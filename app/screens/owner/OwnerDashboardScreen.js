@@ -69,7 +69,7 @@ export default function OwnerDashboardScreen ({ navigation }) {
 
   // Tick every second
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 1000)
+    const id = setInterval(() => setTick((t) => t + 1), 100)
     return () => clearInterval(id)
   }, [])
 
@@ -148,8 +148,9 @@ export default function OwnerDashboardScreen ({ navigation }) {
           <CountdownRing
             progress={progress}
             primary={formatRemaining(remaining)}
-            caption={remaining > 0 ? 'until reconstruction' : 'deadline reached'}
+            caption="until reconstruction"
             tint={animatedRingColor}
+            urgent={remaining === 0}
           />
         </View>
 
