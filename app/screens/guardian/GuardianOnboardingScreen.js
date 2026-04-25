@@ -71,7 +71,11 @@ export default function GuardianOnboardingScreen ({ navigation }) {
 
         <View style={styles.footer}>
           <Button title="Accept invitation" onPress={accept} />
-          <Button title="Back" variant="ghost" onPress={() => navigation.goBack()} />
+          <Button title="Back" variant="ghost" onPress={() => {
+            dispatch({ type: 'setMode', mode: null })
+            if (navigation.canGoBack()) navigation.goBack()
+            else navigation.navigate('ModeSelect')
+          }} />
         </View>
       </ScrollView>
     </SafeAreaView>

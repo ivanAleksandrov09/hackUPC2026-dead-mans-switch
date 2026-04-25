@@ -8,6 +8,7 @@ import { Button } from '../../components/Button'
 import { StepIndicator } from '../../components/StepIndicator'
 import { ScreenHeader } from '../../components/Header'
 import { colors, spacing, typography } from '../../theme'
+import { useStore } from '../../services/store'
 
 const STEPS = [
   { glyph: '🔑', tint: colors.accent,                  title: 'Generate an Estate Key',   body: 'A 32-byte secret encrypts everything. Only you ever hold it whole.' },
@@ -17,6 +18,14 @@ const STEPS = [
 ]
 
 export default function SetupWelcomeScreen ({ navigation }) {
+  const { dispatch } = useStore()
+
+  const goBack = () => {
+    dispatch({ type: 'setMode', mode: null })
+    if (navigation.canGoBack()) navigation.goBack()
+    else navigation.navigate('ModeSelect')
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -48,7 +57,7 @@ export default function SetupWelcomeScreen ({ navigation }) {
 
         <View style={styles.footer}>
           <Button title="Begin setup" onPress={() => navigation.navigate('SetupPassphrase')} />
-          <Button title="Back" variant="ghost" onPress={() => navigation.goBack()} />
+          <Button title="Back" variant="ghost" onPress={goBack} />
         </View>
       </ScrollView>
     </SafeAreaView>

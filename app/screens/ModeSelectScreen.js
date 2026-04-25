@@ -29,7 +29,7 @@ export default function ModeSelectScreen ({ navigation }) {
 
   const select = (mode) => {
     dispatch({ type: 'setMode', mode })
-    navigation.replace(mode === 'owner' ? 'SetupWelcome' : 'GuardianOnboarding')
+    navigation.navigate(mode === 'owner' ? 'SetupWelcome' : 'GuardianOnboarding')
   }
 
   return (
