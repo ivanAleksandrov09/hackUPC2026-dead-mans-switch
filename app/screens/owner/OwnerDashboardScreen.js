@@ -197,12 +197,23 @@ export default function OwnerDashboardScreen ({ navigation }) {
 
           <SectionHeader title="Threshold" />
           <Card>
-            <View style={styles.metricRow}>
-              <Text style={[typography.body, { color: colors.text }]}>Required to unlock</Text>
-              <Text style={[typography.headline, { color: colors.accent }]}>
-                {owner.M}-of-{owner.N}
-              </Text>
+            <View style={styles.shieldRow}>
+              {Array.from({ length: owner.N || 0 }).map((_, i) => {
+                const filled = i < (owner.M || 0)
+                return (
+                  <View key={i} style={[styles.shieldWrap, { opacity: filled ? 1 : 0.3 }]}>
+                    <AppIcon
+                      glyph="🛡️"
+                      tint={filled ? colors.iconTint.guardian : colors.textTertiary}
+                      size={40}
+                    />
+                  </View>
+                )
+              })}
             </View>
+            <Text style={[typography.footnote, { color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm }]}>
+              {owner.M}-of-{owner.N} guardians needed to unlock
+            </Text>
             <View style={[styles.metricRow, { marginTop: spacing.md }]}>
               <Text style={[typography.body, { color: colors.text }]}>Inactivity deadline</Text>
               <Text style={[typography.body, { color: colors.textSecondary }]}>
@@ -296,6 +307,15 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 2,
     marginBottom: spacing.sm
+  },
+  shieldRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.sm
+  },
+  shieldWrap: {
+    alignItems: 'center'
   },
   metricRow: {
     flexDirection: 'row',
