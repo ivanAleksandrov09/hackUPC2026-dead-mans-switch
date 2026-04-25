@@ -2,11 +2,11 @@ export { colors } from './colors.js'
 export { typography } from './typography.js'
 
 export const radii = {
-  xs: 8,
-  sm: 10,
-  md: 14,
-  lg: 18,
-  xl: 24,
+  xs: 4,
+  sm: 6,
+  md: 8,
+  lg: 12,
+  xl: 16,
   pill: 999
 }
 

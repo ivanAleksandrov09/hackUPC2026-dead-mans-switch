@@ -1,6 +1,7 @@
 import React from 'react'
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native'
+import { View, Text, ScrollView, StyleSheet, Pressable, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { LinearGradient } from 'expo-linear-gradient'
 
 import { Card } from '../components/Card'
 import { AppIcon } from '../components/AppIcon'
@@ -32,7 +33,6 @@ export default function ModeSelectScreen ({ navigation }) {
   const hasGuardianVault = !!state.guardian?.sealedShard
   const showSaved = hasOwnerVaults || hasGuardianVault
 
-  // Use the first vault's name for the welcome message
   const returningName = vaults[0]?.name || null
 
   const resumeGuardian = () => {
@@ -52,14 +52,20 @@ export default function ModeSelectScreen ({ navigation }) {
         {showSaved ? (
           <>
             {returningName ? (
-              <View style={styles.welcomeBox}>
-                <Text style={[typography.largeTitle, { color: colors.text }]}>
-                  Welcome back, {returningName}.
+              <LinearGradient
+                colors={['#E8EFFC', '#EDF2FB', '#EEE8FA']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.welcomeBox}
+              >
+                <Image source={require('../assets/logo.png')} style={styles.wordmark} resizeMode="contain" />
+                <Text style={[typography.largeTitle, { color: colors.text, marginTop: spacing.lg, textAlign: 'center' }]}>
+                  Welcome back,{'\n'}{returningName}.
                 </Text>
-                <Text style={[typography.subhead, { color: colors.textSecondary, marginTop: spacing.xs }]}>
+                <Text style={[typography.subhead, { color: colors.textSecondary, marginTop: spacing.xs, textAlign: 'center' }]}>
                   Good to see you're still with us.
                 </Text>
-              </View>
+              </LinearGradient>
             ) : (
               <View style={{ height: spacing.xxl }} />
             )}
@@ -113,13 +119,17 @@ export default function ModeSelectScreen ({ navigation }) {
             </View>
           </>
         ) : (
-          <View style={styles.hero}>
-            <AppIcon icon="lock" tint={colors.accent} size={84} />
-            <Text style={[typography.largeTitle, styles.heroTitle]}>Vault</Text>
+          <LinearGradient
+            colors={['#E8EFFC', '#EDF2FB', '#EEE8FA']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.hero}
+          >
+            <Image source={require('../assets/logo.png')} style={styles.heroLogo} resizeMode="contain" />
             <Text style={[typography.callout, styles.heroSubtitle]}>
               Decentralised inheritance.{'\n'}No servers. No middlemen. Threshold cryptography.
             </Text>
-          </View>
+          </LinearGradient>
         )}
 
         {NEW_MODES.map((m) => (
@@ -161,21 +171,34 @@ const styles = StyleSheet.create({
   hero: {
     alignItems: 'center',
     paddingTop: spacing.xxl,
-    paddingBottom: spacing.xl
+    paddingBottom: spacing.xl,
+    marginBottom: spacing.lg,
+    borderRadius: 12,
+    marginHorizontal: -spacing.lg,
+    paddingHorizontal: spacing.lg
   },
-  heroTitle: {
-    color: colors.text,
-    marginTop: spacing.lg
+  heroLogo: {
+    width: 220,
+    height: 90
   },
   heroSubtitle: {
     color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
     paddingHorizontal: spacing.md
   },
   welcomeBox: {
+    alignItems: 'center',
     paddingTop: spacing.xxl,
-    paddingBottom: spacing.lg
+    paddingBottom: spacing.xl,
+    marginBottom: spacing.lg,
+    borderRadius: 12,
+    marginHorizontal: -spacing.lg,
+    paddingHorizontal: spacing.lg
+  },
+  wordmark: {
+    width: 150,
+    height: 60
   },
   sectionLabel: {
     marginTop: spacing.lg,
@@ -183,9 +206,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4
   },
   sectionLabelText: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.6,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
     color: colors.textTertiary
   },
   savedCard: {

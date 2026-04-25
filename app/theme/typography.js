@@ -1,12 +1,12 @@
 import { Platform } from 'react-native'
 
 const family = Platform.select({
-  ios: 'System',
-  android: 'sans-serif',
+  ios: 'Avenir-Book',
+  android: 'sans-serif-light',
   default: 'System'
 })
 const familyMedium = Platform.select({
-  ios: 'System',
+  ios: 'Avenir-Heavy',
   android: 'sans-serif-medium',
   default: 'System'
 })

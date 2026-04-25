@@ -10,7 +10,7 @@ export function AppIcon ({ icon = 'shield', tint = colors.accent, size = 56, ico
       {
         width: size,
         height: size,
-        borderRadius: size * 0.235,
+        borderRadius: size * 0.18,
         backgroundColor: tint
       }
     ]}>

@@ -13,8 +13,8 @@ export const colors = {
   textTertiary: '#8E8E93',        // tertiary label
   textOnAccent: '#FFFFFF',
 
-  accent: '#007AFF',              // iOS systemBlue
-  accentMuted: '#E5F0FF',
+  accent: '#3A6FE8',              // slightly deeper blue, matches logo
+  accentMuted: '#EAF0FD',
   success: '#34C759',
   successMuted: '#E5F8EC',
   warning: '#FF9500',
