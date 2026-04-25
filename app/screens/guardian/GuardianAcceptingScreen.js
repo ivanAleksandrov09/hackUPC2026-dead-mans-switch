@@ -39,25 +39,31 @@ export default function GuardianAcceptingScreen ({ route, navigation }) {
 
     // Bridge joins the invite swarm and calls onShard when it receives the payload.
     const sub = protocol.acceptInvite(code, {
-      onShard: (shardHex) => {
+      onError: (msg) => {
+        clearTimeout(timeout)
+        setError(`Could not connect to Owner: ${msg}\nMake sure both apps are open and try again.`)
+      },
+      onShard: (shardHex, meta = {}) => {
+        console.log('[guardian] onShard received —', shardHex?.length / 2, 'bytes, shardIndex=', meta.shardIndex, 'M=', meta.M, 'N=', meta.N, 'deadline=', meta.deadlineSeconds)
         clearTimeout(stageTimer)
         setStageIdx(3)
-        // Brief pause so "Sealing shard" stage is visible before done.
         setTimeout(() => {
           dispatch({
             type: 'setGuardian',
             patch: {
               ownerLabel: 'Anonymous Owner',
-              ownerPubKey: code,       // use code as proxy pubkey until bridge sends real one
-              shardIndex: 0,
-              M: 2, N: 3,
-              deadlineSeconds: 30,     // demo: 30s deadline; real value comes from ShardHandoff
-              lastSeenAt: clock.now(),
+              ownerPubKey: meta.ownerGroupKey || code,
+              shardIndex:      meta.shardIndex      ?? 0,
+              M:               meta.M               ?? 2,
+              N:               meta.N               ?? 3,
+              deadlineSeconds: meta.deadlineSeconds ?? 30,
+              lastSeenAt: meta.vaultCreatedAt ?? clock.now(),
               sealedShard: shardHex,
               driveKey: 'stub',
               status: 'active'
             }
           })
+          setStageIdx(4)
           setDone(true)
         }, 900)
       }

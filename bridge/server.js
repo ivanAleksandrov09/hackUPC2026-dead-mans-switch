@@ -13,42 +13,78 @@ import hyperCrypto from 'hypercore-crypto'
 import b4a from 'b4a'
 import * as core from '../core/index.js'
 import { startHeartbeat, observeHeartbeat } from '../net/heartbeat.js'
-import { openInvite, acceptInvite } from '../net/invite.js'
-import { joinReconstruction } from '../net/reconstruction.js'
 import { generateInviteCode } from '../net/transport.js'
 
 const PORT = parseInt(process.env.PORT || '3001')
 const wss = new WebSocketServer({ port: PORT })
 
-// Per-connection state.
+const STARTED_AT = new Date().toISOString()
+let connCount = 0
+let liveSessions = 0
+
+// In-memory invite registry. Both phones in this hackathon setup connect to
+// the SAME bridge, so we pair owner and guardian sessions directly here instead
+// of relying on Hyperswarm DHT to discover two peers running in the same Node
+// process (which is unreliable when bootstrap nodes are slow or firewalled).
+//
+// code -> { type: 'owner', shardHex, onPaired, timer }
+//      |  { type: 'guardian', emitShard, timer }
+const localInvites = new Map()
+const INVITE_TTL_MS = 5 * 60 * 1000
+
+// Shard cache: if a guardian's WS drops right when the owner sends, the shard
+// (plus its metadata) would be silently discarded. Store here so a reconnecting
+// guardian gets it immediately on their next acceptInvite call.
+const deliveredShards = new Map()  // code -> { shardHex, shardIndex, M, N, deadlineSeconds, ownerGroupKey }
+
+function cacheDeliveredShard (code, meta) {
+  deliveredShards.set(code, meta)
+  setTimeout(() => deliveredShards.delete(code), INVITE_TTL_MS)
+}
+
+function snapshotInvites () {
+  if (localInvites.size === 0) return '(none)'
+  return [...localInvites.entries()]
+    .map(([code, slot]) => `${code.slice(0, 12)}…/${slot.type}`)
+    .join(', ')
+}
+
+const WS_STATES = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED']
+
+// In-memory reconstruction registry. Same rationale as localInvites.
+// ownerGroupKey -> [{ sessionId, emit, guardianIndex, shardHex }]
+const localReconstructions = new Map()
+
 function makeSession () {
   return {
+    id: ++connCount,
     keypair: hyperCrypto.keyPair(),
     heartbeatHandle: null,
-    observeHandle: null,
-    reconstructHandle: null
+    observeHandle: null
   }
 }
 
+function tag (session) { return `[bridge #${session.id}]` }
+
 wss.on('connection', (ws) => {
   const session = makeSession()
-  console.log('phone connected')
+  liveSessions++
+  console.log(`${tag(session)} phone connected (${liveSessions} session(s) live, pending invites: ${snapshotInvites()})`)
 
   const send = (msg) => {
     if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg))
   }
 
-  // Reply to a request.
   const reply = (id, result) => send({ id, result })
   const error = (id, message) => send({ id, error: message })
-
-  // Push an unsolicited event to the phone.
   const emit = (type, data) => send({ type, ...data })
 
   ws.on('message', async (raw) => {
     let msg
     try { msg = JSON.parse(raw) } catch { return }
     const { id, method, params = {} } = msg
+
+    if (method !== 'kick') console.log(`${tag(session)} → ${method}`)
 
     try {
       if (method === 'generateEstateKey') {
@@ -100,64 +136,159 @@ wss.on('connection', (ws) => {
         reply(id, { ok: true })
 
       } else if (method === 'openInvite') {
-        // Owner side — opens a handoff channel, sends the shard, returns.
-        const { stream, close } = await openInvite(params.code)
-        const shard = b4a.from(params.shardHex, 'hex')
-        stream.write(shard)
-        stream.end()
-        await close()
-        reply(id, { ok: true })
+        const code = params.code
+        // Full metadata from the owner — forwarded to the guardian via shardReceived.
+        const shardMeta = {
+          shardHex:        params.shardHex,
+          shardIndex:      params.shardIndex ?? 0,
+          M:               params.M,
+          N:               params.N,
+          deadlineSeconds: params.deadlineSeconds,
+          ownerGroupKey:   params.ownerGroupKey
+        }
+        console.log(`${tag(session)} [openInvite] OWNER — code "${code}", shardIndex=${shardMeta.shardIndex}, M=${shardMeta.M}, N=${shardMeta.N}, deadline=${shardMeta.deadlineSeconds}s, pending: ${snapshotInvites()}`)
+        const pending = localInvites.get(code)
+        if (pending && pending.type === 'guardian') {
+          console.log(`${tag(session)} [openInvite] guardian already waiting — delivering shard immediately`)
+          clearTimeout(pending.timer)
+          localInvites.delete(code)
+          cacheDeliveredShard(code, shardMeta)
+          pending.emitShard(shardMeta)
+          reply(id, { ok: true })
+        } else {
+          console.log(`${tag(session)} [openInvite] no guardian yet — registering owner, waiting`)
+          const slot = { type: 'owner', ...shardMeta }
+          slot.timer = setTimeout(() => {
+            if (localInvites.get(code) === slot) {
+              localInvites.delete(code)
+              console.log(`${tag(session)} [openInvite] timeout — no guardian connected`)
+              error(id, 'invite timeout: no guardian connected within 5 minutes')
+            }
+          }, INVITE_TTL_MS)
+          slot.onPaired = () => {
+            clearTimeout(slot.timer)
+            console.log(`${tag(session)} [openInvite] paired — replying ok to owner`)
+            reply(id, { ok: true })
+          }
+          localInvites.set(code, slot)
+        }
 
       } else if (method === 'acceptInvite') {
-        // Guardian side — waits for the owner to push a shard.
-        const { stream, close } = await acceptInvite(params.code)
-        const chunks = []
-        stream.on('data', (c) => chunks.push(c))
-        stream.on('end', async () => {
-          const shardHex = b4a.concat(chunks).toString('hex')
-          await close()
-          emit('shardReceived', { shardHex })
-        })
+        const code = params.code
+        console.log(`${tag(session)} [acceptInvite] GUARDIAN — code "${code}", pending: ${snapshotInvites()}, cached: ${deliveredShards.has(code) ? 'YES' : 'no'}`)
         reply(id, { ok: true, waiting: true })
 
+        const emitShard = (meta) => {
+          const wsState = WS_STATES[ws.readyState] ?? ws.readyState
+          console.log(`${tag(session)} [acceptInvite] emitShard — WS state: ${wsState}, shardIndex=${meta.shardIndex}, ${meta.shardHex?.length / 2} bytes`)
+          if (ws.readyState !== ws.OPEN) {
+            console.log(`${tag(session)} [acceptInvite] WS closed — shard cached, guardian must reconnect`)
+            return
+          }
+          emit('shardReceived', meta)
+        }
+
+        if (deliveredShards.has(code)) {
+          console.log(`${tag(session)} [acceptInvite] found cached shard — delivering to reconnected guardian`)
+          emitShard(deliveredShards.get(code))
+        } else {
+          const pending = localInvites.get(code)
+          if (pending && pending.type === 'owner') {
+            console.log(`${tag(session)} [acceptInvite] owner already waiting — pairing immediately`)
+            clearTimeout(pending.timer)
+            localInvites.delete(code)
+            const { onPaired, timer: _t, type: _type, ...meta } = pending
+            cacheDeliveredShard(code, meta)
+            emitShard(meta)
+            pending.onPaired()
+          } else {
+            console.log(`${tag(session)} [acceptInvite] no owner yet — registering guardian, waiting`)
+            const slot = { type: 'guardian', emitShard }
+            slot.timer = setTimeout(() => {
+              if (localInvites.get(code) === slot) {
+                localInvites.delete(code)
+                console.log(`${tag(session)} [acceptInvite] timeout — owner never connected`)
+                emit('inviteError', { message: 'invite timeout: owner did not connect within 5 minutes' })
+              }
+            }, INVITE_TTL_MS)
+            localInvites.set(code, slot)
+          }
+        }
+
       } else if (method === 'joinReconstruction') {
-        if (session.reconstructHandle) session.reconstructHandle.stop()
-        const ownerPubKey = b4a.from(params.ownerPubKey, 'hex')
-        const ourShard = b4a.from(params.shardHex, 'hex')
-        const ev = joinReconstruction({
-          ownerPubKey,
-          ourKeyPair: session.keypair,
-          ourGuardianIndex: params.guardianIndex,
-          ourShard,
-          lastSeenAt: params.lastSeenAt || Date.now(),
-          M: params.M
-        })
-        session.reconstructHandle = ev
-        ev.on('peer',   (d) => emit('peer',   d))
-        ev.on('shard',  (d) => emit('shard',  d))
-        ev.on('quorum', async (d) => {
-          const ek = core.combineKey(d.shards)
-          emit('quorum', { ekHex: ek.toString('hex') })
-        })
+        // In-memory reconstruction: all guardian sessions on this bridge that share
+        // the same ownerGroupKey are paired directly, no Hyperswarm needed.
+        const groupKey      = params.ownerPubKey   // ownerGroupKey set during invite handoff
+        const guardianIndex = params.guardianIndex
+        const shardHex      = params.shardHex
+        const M             = params.M
+
+        if (!localReconstructions.has(groupKey)) localReconstructions.set(groupKey, [])
+        const group = localReconstructions.get(groupKey)
+
+        const member = { sessionId: session.id, emit, guardianIndex, shardHex }
+        group.push(member)
+        const total = group.length   // each guardian already counts themselves as 1
+
+        console.log(`${tag(session)} [reconstruction] guardian #${guardianIndex} joined group "${groupKey?.slice(0, 12)}…" (${total}/${M})`)
+
+        // Cross-announce newcomer ↔ each existing member.
+        for (const existing of group) {
+          if (existing === member) continue
+          // Tell newcomer about existing
+          member.emit('peer',  { guardianIndex: existing.guardianIndex })
+          member.emit('shard', { guardianIndex: existing.guardianIndex, total })
+          // Tell existing about newcomer
+          existing.emit('peer',  { guardianIndex: member.guardianIndex })
+          existing.emit('shard', { guardianIndex: member.guardianIndex, total })
+        }
+
+        if (total >= M) {
+          console.log(`${tag(session)} [reconstruction] quorum! combining ${total} shards`)
+          try {
+            const ek = core.combineKey(group.map(m => b4a.from(m.shardHex, 'hex')))
+            const ekHex = ek.toString('hex')
+            for (const m of group) m.emit('quorum', { ekHex })
+            localReconstructions.delete(groupKey)
+          } catch (err) {
+            console.error(`${tag(session)} [reconstruction] combineKey failed: ${err.message}`)
+          }
+        }
         reply(id, { ok: true })
 
       } else {
         error(id, `unknown method: ${method}`)
       }
     } catch (err) {
+      console.error(`${tag(session)} error in ${method}:`, err.message)
       error(id, err.message)
     }
   })
 
   ws.on('close', async () => {
-    console.log('phone disconnected')
+    liveSessions--
+    console.log(`${tag(session)} phone disconnected (${liveSessions} session(s) live)`)
     await session.heartbeatHandle?.stop().catch(() => {})
     await session.observeHandle?.stop().catch(() => {})
-    await session.reconstructHandle?.stop().catch(() => {})
+    // Remove this session from any reconstruction group it was part of.
+    for (const [key, group] of localReconstructions) {
+      const filtered = group.filter(m => m.sessionId !== session.id)
+      if (filtered.length === 0) localReconstructions.delete(key)
+      else localReconstructions.set(key, filtered)
+    }
   })
 })
 
-console.log(`bridge listening on ws://0.0.0.0:${PORT}`)
-console.log('find your LAN IP and give it to the phone app:')
-console.log('  Windows: ipconfig | findstr IPv4')
-console.log('  Mac/Linux: ifconfig | grep "inet "')
+console.log(`================================================================`)
+console.log(`bridge started at ${STARTED_AT}`)
+console.log(`listening on ws://0.0.0.0:${PORT}`)
+console.log(`mode: in-memory invite pairing (Hyperswarm bypassed for handoff)`)
+console.log(`find your LAN IP and give it to the phone app:`)
+console.log(`  Windows: ipconfig | findstr IPv4`)
+console.log(`  Mac/Linux: ifconfig | grep "inet "`)
+console.log(`================================================================`)
+
+// Heartbeat status log every 15s so it's obvious whether anything is happening.
+setInterval(() => {
+  console.log(`[bridge] heartbeat: ${liveSessions} session(s) live, pending invites: ${snapshotInvites()}`)
+}, 15000)

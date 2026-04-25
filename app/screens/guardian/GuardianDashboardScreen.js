@@ -57,7 +57,7 @@ export default function GuardianDashboardScreen ({ navigation }) {
 
   const toggleFastForward = (value) => {
     dispatch({ type: 'setFastForward', value })
-    clock.setMultiplier(value ? 60 : 1)
+    clock.setMultiplier(value ? 86400 : 1)  // 1 virtual day per real second
   }
 
   const tone = overdue ? 'overdue' : guardian.status === 'reconstructing' ? 'reconstructing' : 'active'

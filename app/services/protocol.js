@@ -31,14 +31,17 @@ function connect () {
     try { msg = JSON.parse(e.data) } catch { return }
 
     if (msg.id !== undefined) {
-      // Reply to a pending request.
       const r = pendingResolvers[msg.id]
       if (!r) return
       delete pendingResolvers[msg.id]
-      if (msg.error) r.reject(new Error(msg.error))
-      else r.resolve(msg.result)
+      if (msg.error) {
+        console.log(`[bridge] ← error for id=${msg.id}: ${msg.error}`)
+        r.reject(new Error(msg.error))
+      } else {
+        r.resolve(msg.result)
+      }
     } else if (msg.type) {
-      // Unsolicited event.
+      console.log(`[bridge] ← event: ${msg.type}`)
       for (const cb of (eventHandlers[msg.type] || [])) {
         try { cb(msg) } catch {}
       }
@@ -60,11 +63,12 @@ function call (method, params = {}) {
     if (!connected) return reject(new Error('bridge not connected'))
     const id = nextId()
     pendingResolvers[id] = { resolve, reject }
+    if (method !== 'kick') console.log(`[bridge] → ${method} (id=${id})`)
     ws.send(JSON.stringify({ id, method, params }))
-    // 30s timeout per call.
     setTimeout(() => {
       if (pendingResolvers[id]) {
         delete pendingResolvers[id]
+        console.log(`[bridge] timeout: ${method} (id=${id})`)
         reject(new Error(`timeout: ${method}`))
       }
     }, 30000)
@@ -141,17 +145,29 @@ export function observeHeartbeat ({ ownerPubKey, onUpdate }) {
   return { stop () { off() } }
 }
 
-export async function openInvite (code, shardHex) {
-  await call('openInvite', { code, shardHex })
+export async function openInvite (code, shardHex, meta = {}) {
+  console.log(`[protocol] openInvite: waiting for guardian on code ${code.slice(0, 12)}…`)
+  await call('openInvite', { code, shardHex, ...meta })
+  console.log(`[protocol] openInvite: shard delivered, owner UI should update`)
 }
 
-export function acceptInvite (code, { onShard } = {}) {
-  call('acceptInvite', { code }).catch(() => {})
-  const off = on('shardReceived', (msg) => {
-    onShard?.(msg.shardHex)
-    off()
+export function acceptInvite (code, { onShard, onError } = {}) {
+  console.log(`[protocol] acceptInvite: joining swarm for code ${code.slice(0, 12)}…`)
+  call('acceptInvite', { code }).catch((err) => console.log(`[protocol] acceptInvite call error: ${err.message}`))
+  const offShard = on('shardReceived', (msg) => {
+    const { type: _t, shardHex, ...meta } = msg
+    console.log(`[protocol] shardReceived: ${shardHex?.length / 2} bytes, shardIndex=${meta.shardIndex}, M=${meta.M}, deadline=${meta.deadlineSeconds}s`)
+    onShard?.(shardHex, meta)
+    offShard()
+    offError()
   })
-  return { stop () { off() } }
+  const offError = on('inviteError', (msg) => {
+    console.log(`[protocol] inviteError: ${msg.message}`)
+    onError?.(msg.message)
+    offShard()
+    offError()
+  })
+  return { stop () { offShard(); offError() } }
 }
 
 export function joinReconstruction ({ ownerPubKey, shardHex, guardianIndex, lastSeenAt, M, onPeer, onShard, onQuorum }) {

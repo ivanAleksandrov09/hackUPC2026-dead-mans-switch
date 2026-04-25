@@ -15,25 +15,31 @@ export function acceptInvite (inviteCode, { swarm } = {}) {
 
 function joinInviteSwarm (inviteCode, { swarm, role }) {
   const topic = topicFromInvite(inviteCode)
+  const topicHex = topic.toString('hex').slice(0, 12)
   const sw = swarm || new Hyperswarm()
   const ownsSwarm = !swarm
+
+  console.log(`[invite/${role}] joining swarm topic ${topicHex}…`)
 
   return new Promise((resolve, reject) => {
     let settled = false
     const onConnection = async (conn, info) => {
       if (settled) {
+        console.log(`[invite/${role}] extra connection on topic ${topicHex} — discarding`)
         try { conn.end() } catch {}
         return
       }
       settled = true
       sw.off('connection', onConnection)
+      console.log(`[invite/${role}] peer connected on topic ${topicHex}`)
 
       const close = async () => {
         await discovery.destroy().catch(() => {})
         if (ownsSwarm) await sw.destroy().catch(() => {})
       }
+      conn.on('close', () => console.log(`[invite/${role}] connection closed topic ${topicHex}`))
+      conn.on('error', (err) => console.log(`[invite/${role}] connection error topic ${topicHex}: ${err.message}`))
       conn.on('close', close)
-      conn.on('error', () => {})
 
       resolve({ stream: conn, info, role, close })
     }
@@ -41,8 +47,9 @@ function joinInviteSwarm (inviteCode, { swarm, role }) {
 
     const discovery = sw.join(topic, { server: true, client: true })
 
-    // Nudge: ensure we're announcing/looking up.
-    discovery.flushed().catch(() => {})
+    discovery.flushed()
+      .then(() => console.log(`[invite/${role}] DHT flush done for topic ${topicHex}`))
+      .catch(() => {})
 
     setTimeout(() => {
       if (!settled) {
@@ -50,6 +57,7 @@ function joinInviteSwarm (inviteCode, { swarm, role }) {
         sw.off('connection', onConnection)
         discovery.destroy().catch(() => {})
         if (ownsSwarm) sw.destroy().catch(() => {})
+        console.log(`[invite/${role}] handshake timeout for topic ${topicHex}`)
         reject(new Error('invite handshake timeout'))
       }
     }, 5 * 60 * 1000)

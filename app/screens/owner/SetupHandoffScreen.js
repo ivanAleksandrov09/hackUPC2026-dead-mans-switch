@@ -47,7 +47,7 @@ export default function SetupHandoffScreen ({ navigation }) {
         if (!cancelled) {
           setShards(shardHexes)
           // Store a hash stub (never store the raw EK in AsyncStorage).
-          dispatch({ type: 'setOwner', patch: { estateKeyHash: ekHex.slice(0, 16) } })
+          dispatch({ type: 'setOwner', patch: { estateKeyHash: ekHex.slice(0, 16), vaultCreatedAt: Date.now() } })
           setPreparing(false)
         }
       } catch (err) {
@@ -65,9 +65,14 @@ export default function SetupHandoffScreen ({ navigation }) {
     await Clipboard.setStringAsync(invites[index])
     setStatuses((s) => ({ ...s, [index]: 'sending' }))
     try {
-      // Bridge joins the invite topic and waits for the guardian to connect,
-      // then pushes the shard. Resolves when the guardian receives it.
-      await protocol.openInvite(invites[index], shards[index])
+      await protocol.openInvite(invites[index], shards[index], {
+        shardIndex:      index,
+        M,
+        N,
+        deadlineSeconds: state.owner?.deadlineSeconds ?? 30,
+        ownerGroupKey:   state.owner?.estateKeyHash   ?? 'demo',
+        vaultCreatedAt:  state.owner?.vaultCreatedAt  ?? Date.now()
+      })
       setStatuses((s) => ({ ...s, [index]: 'accepted' }))
       dispatch({ type: 'updateGuardianRow', index, patch: { handoffStatus: 'accepted', lastSeenAt: Date.now() } })
     } catch (err) {
