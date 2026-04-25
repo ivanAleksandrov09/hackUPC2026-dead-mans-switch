@@ -42,16 +42,17 @@ export default function SetupHandoffScreen ({ navigation }) {
   }
 
   const finish = async () => {
-    // Real impl: generate EK, encrypt items into Hyperdrive, persist driveKey.
-    const driveKey = 'mock-drive-key-' + Math.random().toString(36).slice(2)
+    const id = state.owner?.id || 'vault-' + Date.now().toString(36)
     dispatch({
       type: 'setOwner',
       patch: {
-        driveKey,
+        id,
+        driveKey: 'mock-drive-key-' + Math.random().toString(36).slice(2),
         estateKeyHash: 'mock-ek-hash-' + Date.now().toString(36),
         lastKick: Date.now()
       }
     })
+    dispatch({ type: 'saveOwner' })
     navigation.reset({ index: 0, routes: [{ name: 'OwnerDashboard' }] })
   }
 

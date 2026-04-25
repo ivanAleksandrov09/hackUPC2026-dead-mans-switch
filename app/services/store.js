@@ -7,7 +7,8 @@ const initialState = {
   hydrated: false,
   mode: null,                // 'owner' | 'guardian'
   identity: null,            // { publicKeyHex }
-  owner: null,               // see CONTRACTS.md `owner`
+  owner: null,               // active vault being set up / in use
+  owners: [],                // all completed vaults [{ id, name, estateLabel, driveKey, ... }]
   guardian: null,            // see CONTRACTS.md `guardian`
   // Demo-only:
   fastForward: false,        // multiplies clock x60 for the demo
@@ -26,6 +27,20 @@ function reducer (state, action) {
         g.index === action.index ? { ...g, ...action.patch } : g
       )
       return { ...state, owner: { ...state.owner, guardians: next } }
+    }
+    case 'saveOwner': {
+      // Upsert state.owner (which must have an id) into the owners array.
+      const o = state.owner
+      if (!o?.id) return state
+      const idx = state.owners.findIndex((v) => v.id === o.id)
+      const next = idx >= 0
+        ? state.owners.map((v) => v.id === o.id ? o : v)
+        : [...state.owners, o]
+      return { ...state, owners: next }
+    }
+    case 'selectOwner': {
+      const vault = (state.owners || []).find((v) => v.id === action.id)
+      return vault ? { ...state, owner: vault, mode: 'owner' } : state
     }
     case 'setFastForward':    return { ...state, fastForward: action.value }
     case 'observedHeartbeat': return { ...state, liveHeartbeats: { ...state.liveHeartbeats, [action.ownerPubKey]: action.lastSeenAt } }

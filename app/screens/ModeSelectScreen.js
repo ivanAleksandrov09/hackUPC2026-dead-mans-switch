@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { Card } from '../components/Card'
 import { AppIcon } from '../components/AppIcon'
-import { colors, radii, spacing, typography, shadows } from '../theme'
+import { colors, spacing, typography, shadows } from '../theme'
 import { useStore } from '../services/store'
 
 const NEW_MODES = [
@@ -27,12 +27,17 @@ const NEW_MODES = [
 export default function ModeSelectScreen ({ navigation }) {
   const { state, dispatch } = useStore()
 
-  const hasOwnerVault = !!state.owner?.driveKey
+  const vaults = state.owners || []
+  const hasOwnerVaults = vaults.length > 0
   const hasGuardianVault = !!state.guardian?.sealedShard
+  const showSaved = hasOwnerVaults || hasGuardianVault
 
-  const resume = (mode) => {
-    dispatch({ type: 'setMode', mode })
-    navigation.navigate(mode === 'owner' ? 'OwnerDashboard' : 'GuardianDashboard')
+  // Use the first vault's name for the welcome message
+  const returningName = vaults[0]?.name || null
+
+  const resumeGuardian = () => {
+    dispatch({ type: 'setMode', mode: 'guardian' })
+    navigation.navigate('GuardianDashboard')
   }
 
   const select = (mode) => {
@@ -40,53 +45,42 @@ export default function ModeSelectScreen ({ navigation }) {
     navigation.navigate(mode === 'owner' ? 'SetupWelcome' : 'GuardianOnboarding')
   }
 
-  const showSaved = hasOwnerVault || hasGuardianVault
-
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        {!showSaved && (
-          <View style={styles.hero}>
-            <AppIcon glyph="⚰️" tint={colors.accent} size={84} />
-            <Text style={[typography.largeTitle, styles.title]}>Vault</Text>
-            <Text style={[typography.callout, styles.subtitle]}>
-              A decentralized inheritance system.{'\n'}No servers. No middlemen. Just you, your people, and a shared promise.
-            </Text>
-          </View>
-        )}
 
         {showSaved ? (
           <>
-            {state.owner?.name ? (
+            {returningName ? (
               <View style={styles.welcomeBox}>
                 <Text style={[typography.largeTitle, { color: colors.text }]}>
-                  Welcome back, {state.owner.name}!
+                  Welcome back, {returningName}!
                 </Text>
                 <Text style={[typography.subhead, { color: colors.textSecondary, marginTop: spacing.xs }]}>
                   Good to see you're still with us. 🤍
                 </Text>
               </View>
-            ) : null}
+            ) : (
+              <View style={{ height: spacing.xxl }} />
+            )}
 
             <View style={styles.sectionLabel}>
-              <Text style={[typography.footnote, styles.sectionLabelText]}>SAVED VAULTS</Text>
+              <Text style={styles.sectionLabelText}>SAVED</Text>
             </View>
 
-            {hasOwnerVault && (
-              <Pressable onPress={() => resume('owner')}>
+            {hasOwnerVaults && (
+              <Pressable onPress={() => navigation.navigate('VaultList')}>
                 {({ pressed }) => (
                   <Card style={[styles.savedCard, pressed && styles.pressed]}>
-                    <View style={styles.modeRow}>
+                    <View style={styles.row}>
                       <AppIcon glyph="🔒" tint={colors.iconTint.estate} size={48} />
-                      <View style={styles.modeText}>
-                        <Text style={[typography.headline, { color: colors.text }]}>
-                          {state.owner?.estateLabel || 'My Vault'}
-                        </Text>
+                      <View style={styles.rowText}>
+                        <Text style={[typography.headline, { color: colors.text }]}>My Vaults</Text>
                         <Text style={[typography.footnote, { color: colors.textSecondary, marginTop: 2 }]}>
-                          Owner · tap to unlock
+                          {vaults.length} vault{vaults.length !== 1 ? 's' : ''} on this device
                         </Text>
                       </View>
-                      <Text style={[typography.title2, { color: colors.accent, marginLeft: spacing.sm }]}>›</Text>
+                      <Text style={[typography.title2, { color: colors.accent }]}>›</Text>
                     </View>
                   </Card>
                 )}
@@ -94,12 +88,12 @@ export default function ModeSelectScreen ({ navigation }) {
             )}
 
             {hasGuardianVault && (
-              <Pressable onPress={() => resume('guardian')}>
+              <Pressable onPress={resumeGuardian}>
                 {({ pressed }) => (
                   <Card style={[styles.savedCard, pressed && styles.pressed]}>
-                    <View style={styles.modeRow}>
+                    <View style={styles.row}>
                       <AppIcon glyph="🛡️" tint={colors.iconTint.guardian} size={48} />
-                      <View style={styles.modeText}>
+                      <View style={styles.rowText}>
                         <Text style={[typography.headline, { color: colors.text }]}>
                           {state.guardian?.ownerLabel || 'Guardian role'}
                         </Text>
@@ -107,7 +101,7 @@ export default function ModeSelectScreen ({ navigation }) {
                           Guardian · tap to continue
                         </Text>
                       </View>
-                      <Text style={[typography.title2, { color: colors.accent, marginLeft: spacing.sm }]}>›</Text>
+                      <Text style={[typography.title2, { color: colors.accent }]}>›</Text>
                     </View>
                   </Card>
                 )}
@@ -115,26 +109,32 @@ export default function ModeSelectScreen ({ navigation }) {
             )}
 
             <View style={styles.sectionLabel}>
-              <Text style={[typography.footnote, styles.sectionLabelText]}>START FRESH</Text>
+              <Text style={styles.sectionLabelText}>START FRESH</Text>
             </View>
           </>
         ) : (
-          <View style={{ height: spacing.xl }} />
+          <View style={styles.hero}>
+            <AppIcon glyph="⚰️" tint={colors.accent} size={84} />
+            <Text style={[typography.largeTitle, styles.heroTitle]}>Vault</Text>
+            <Text style={[typography.callout, styles.heroSubtitle]}>
+              A decentralized inheritance system.{'\n'}No servers. No middlemen. Just you, your people, and a shared promise.
+            </Text>
+          </View>
         )}
 
         {NEW_MODES.map((m) => (
           <Pressable key={m.id} onPress={() => select(m.id)}>
             {({ pressed }) => (
               <Card style={[styles.modeCard, pressed && styles.pressed]}>
-                <View style={styles.modeRow}>
+                <View style={styles.row}>
                   <AppIcon glyph={m.glyph} tint={m.tint} size={56} />
-                  <View style={styles.modeText}>
+                  <View style={styles.rowText}>
                     <Text style={[typography.headline, { color: colors.text }]}>{m.title}</Text>
                     <Text style={[typography.subhead, { color: colors.textSecondary, marginTop: 2 }]}>
                       {m.subtitle}
                     </Text>
                   </View>
-                  <Text style={[typography.title2, { color: colors.textTertiary, marginLeft: spacing.sm }]}>›</Text>
+                  <Text style={[typography.title2, { color: colors.textTertiary }]}>›</Text>
                 </View>
               </Card>
             )}
@@ -161,13 +161,13 @@ const styles = StyleSheet.create({
   hero: {
     alignItems: 'center',
     paddingTop: spacing.xxl,
-    paddingBottom: spacing.lg
+    paddingBottom: spacing.xl
   },
-  title: {
+  heroTitle: {
     color: colors.text,
     marginTop: spacing.lg
   },
-  subtitle: {
+  heroSubtitle: {
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: spacing.sm,
@@ -183,9 +183,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4
   },
   sectionLabelText: {
-    color: colors.textTertiary,
+    fontSize: 12,
     fontWeight: '600',
-    letterSpacing: 0.6
+    letterSpacing: 0.6,
+    color: colors.textTertiary
   },
   savedCard: {
     marginBottom: spacing.sm,
@@ -197,11 +198,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     ...shadows.card
   },
-  modeRow: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center'
   },
-  modeText: {
+  rowText: {
     flex: 1,
     marginLeft: spacing.lg
   },
