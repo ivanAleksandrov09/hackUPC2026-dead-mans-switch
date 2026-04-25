@@ -1,23 +1,27 @@
 {
   "expo": {
-    "name": "Vault",
-    "slug": "dead-mans-switch",
+    "name": "Last Safe",
+    "slug": "last-safe",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "scheme": "vault",
+    "icon": "./assets/logo.png",
     "splash": {
-      "backgroundColor": "#F2F2F7",
+      "image": "./assets/logo.png",
+      "backgroundColor": "#FFFFFF",
       "resizeMode": "contain"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dms.vault"
+      "bundleIdentifier": "com.dms.vault",
+      "icon": "./assets/logo.png"
     },
     "android": {
       "package": "com.dms.vault",
       "adaptiveIcon": {
-        "backgroundColor": "#F2F2F7"
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#FFFFFF"
       }
     },
     "web": {

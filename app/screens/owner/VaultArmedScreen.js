@@ -110,7 +110,7 @@ export default function VaultArmedScreen ({ navigation }) {
 
         <Animated.View style={{ opacity: subtitleOpacity, alignItems: 'center' }}>
           <Text style={[typography.largeTitle, { color: colors.text, marginTop: spacing.lg }]}>
-            Vault armed.
+            Last Safe armed.
           </Text>
           <Text style={[typography.subhead, { color: colors.textSecondary, marginTop: spacing.sm, textAlign: 'center', paddingHorizontal: spacing.xl }]}>
             Your estate is sealed and your Guardians are holding their shards.
@@ -134,7 +134,7 @@ export default function VaultArmedScreen ({ navigation }) {
             style={styles.button}
             onPress={() => navigation.reset({ index: 0, routes: [{ name: 'OwnerDashboard' }] })}
           >
-            <Text style={[typography.headline, { color: colors.textOnAccent }]}>Go to my Vault</Text>
+            <Text style={[typography.headline, { color: colors.textOnAccent }]}>Open Last Safe</Text>
           </Pressable>
         </Animated.View>
       </View>

@@ -135,7 +135,7 @@ export default function OwnerDashboardScreen ({ navigation }) {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <ScreenHeader
-          eyebrow="Vault"
+          eyebrow="Last Safe"
           title={owner.estateLabel || 'My Vault'}
           right={
             <Pressable onPress={openSettings} hitSlop={12}>

@@ -126,8 +126,12 @@ export default function ModeSelectScreen ({ navigation }) {
             style={styles.hero}
           >
             <Image source={require('../assets/logo.png')} style={styles.heroLogo} resizeMode="contain" />
-            <Text style={[typography.callout, styles.heroSubtitle]}>
-              Decentralised inheritance.{'\n'}No servers. No middlemen. Threshold cryptography.
+            <Text style={styles.heroAppName}>Last Safe</Text>
+            <Text style={styles.heroSlogan}>
+              The Last Safe you Need.{'\n'}Shared Only with the Ones Who Need it.
+            </Text>
+            <Text style={[typography.footnote, styles.heroSubtitle]}>
+              Secure decentralised inheritance — you own your data.{'\n'}No servers. No middlemen.
             </Text>
           </LinearGradient>
         )}
@@ -181,11 +185,30 @@ const styles = StyleSheet.create({
     width: 220,
     height: 90
   },
-  heroSubtitle: {
-    color: colors.textSecondary,
+  heroAppName: {
+    fontFamily: 'Avenir-Heavy',
+    fontSize: 36,
+    fontWeight: '800',
+    color: colors.text,
+    letterSpacing: 0.5,
+    marginTop: spacing.sm,
+    textAlign: 'center'
+  },
+  heroSlogan: {
+    fontFamily: 'Avenir-Book',
+    fontSize: 16,
+    color: colors.text,
     textAlign: 'center',
     marginTop: spacing.md,
+    lineHeight: 24,
     paddingHorizontal: spacing.md
+  },
+  heroSubtitle: {
+    color: colors.textTertiary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    lineHeight: 18
   },
   welcomeBox: {
     alignItems: 'center',

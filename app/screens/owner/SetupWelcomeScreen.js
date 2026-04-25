@@ -30,7 +30,7 @@ export default function SetupWelcomeScreen ({ navigation }) {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <ScreenHeader
-          eyebrow="Set up Vault"
+          eyebrow="Set up Last Safe"
           title="How it works"
           subtitle="Four steps. The whole thing takes under five minutes."
         />

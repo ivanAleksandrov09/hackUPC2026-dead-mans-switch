@@ -2,4 +2,4 @@
 // Find it with:
 //   Windows:  ipconfig | findstr IPv4
 //   Mac/Linux: ifconfig | grep "inet "
-export const BRIDGE_URL = "ws://10.167.110.187:3001";
+export const BRIDGE_URL = "ws://192.168.1.126:3001";

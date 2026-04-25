@@ -1,11 +1,12 @@
 import React from 'react'
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native'
+import { View, Text, ScrollView, StyleSheet, Pressable, useWindowDimensions } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { Card, GroupedList, GroupedRow } from '../../components/Card'
 import { AppIcon } from '../../components/AppIcon'
 import { StatusPill } from '../../components/StatusPill'
 import { ScreenHeader, SectionHeader } from '../../components/Header'
+import { GuardianGraph } from '../../components/GuardianGraph'
 import { colors, spacing, typography } from '../../theme'
 import { useStore } from '../../services/store'
 import { clock, formatRelative } from '../../services/clock'
@@ -13,6 +14,8 @@ import { clock, formatRelative } from '../../services/clock'
 export default function GuardianRosterScreen ({ navigation }) {
   const { state } = useStore()
   const guardians = state.owner?.guardians || []
+  const { width } = useWindowDimensions()
+  const graphWidth = width - spacing.lg * 2
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -29,6 +32,15 @@ export default function GuardianRosterScreen ({ navigation }) {
         />
 
         <View style={styles.body}>
+          <Card style={styles.graphCard}>
+            <GuardianGraph
+              guardians={guardians}
+              M={state.owner?.M || 2}
+              width={graphWidth}
+              height={220}
+            />
+          </Card>
+
           <SectionHeader title="Status" />
           <GroupedList>
             {guardians.map((g, i) => {
@@ -70,5 +82,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   scroll: { paddingBottom: spacing.xxl },
   headerRow: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
-  body: { paddingHorizontal: spacing.lg }
+  body: { paddingHorizontal: spacing.lg },
+  graphCard: { marginBottom: spacing.lg, padding: spacing.md, alignItems: 'center' }
 })

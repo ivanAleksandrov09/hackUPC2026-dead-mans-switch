@@ -34,7 +34,7 @@ export default function VaultListScreen ({ navigation }) {
         </View>
 
         <ScreenHeader
-          eyebrow="Vault"
+          eyebrow="Last Safe"
           title="My Vaults"
           subtitle={vaults.length === 0 ? 'No vaults yet.' : `${vaults.length} vault${vaults.length !== 1 ? 's' : ''} on this device.`}
         />
