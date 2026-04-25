@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: colors.border
   },
   padded: {
@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
   list: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden'
   },

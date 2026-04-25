@@ -6,7 +6,7 @@ export const colors = {
   surfaceElevated: '#FFFFFF',
   surfaceMuted: '#F7F7FA',
   separator: '#EBEBEF',
-  border: '#E0E0E6',
+  border: '#C8C8D0',
 
   text: '#1C1C1E',                // primary label
   textSecondary: '#6E6E73',       // secondary label
