@@ -22,27 +22,35 @@ export default function SetupGuardiansScreen ({ navigation }) {
   const [N, setN] = useState(state.owner?.N || 3)
   const [M, setM] = useState(Math.min(state.owner?.M || 2, N))
   const [deadlineId, setDeadlineId] = useState(state.owner?.deadlinePresetId || '180d')
+  const [rosterError, setRosterError] = useState(null)
   const [labels, setLabels] = useState(
     state.owner?.guardians?.map((g) => g.label) ||
-    ['Alex', 'Priya', 'Sam']
+    Array(N).fill('')
   )
 
   const setNSafe = (v) => { setN(v); if (M > v) setM(v) }
   const setMSafe = (v) => { setM(Math.min(v, N)) }
-  const setLabelAt = (i, v) => setLabels((prev) => {
-    const next = [...prev]; next[i] = v; return next
-  })
+  const setLabelAt = (i, v) => {
+    setRosterError(null)
+    setLabels((prev) => { const next = [...prev]; next[i] = v; return next })
+  }
 
   // Keep labels array length in sync with N.
   React.useEffect(() => {
     setLabels((prev) => {
       if (prev.length === N) return prev
-      if (prev.length < N) return [...prev, ...Array(N - prev.length).fill('').map((_, i) => `Guardian ${prev.length + i + 1}`)]
+      if (prev.length < N) return [...prev, ...Array(N - prev.length).fill('')]
       return prev.slice(0, N)
     })
   }, [N])
 
   const next = () => {
+    const unnamed = labels.findIndex((l) => !l.trim())
+    if (unnamed !== -1) {
+      setRosterError(`Enter a name for Guardian ${unnamed + 1}.`)
+      return
+    }
+    setRosterError(null)
     const preset = DEADLINE_PRESETS.find((p) => p.id === deadlineId) || DEADLINE_PRESETS[2]
     const guardians = labels.map((label, index) => ({
       index,
@@ -120,12 +128,17 @@ export default function SetupGuardiansScreen ({ navigation }) {
                 <TextField
                   value={l}
                   onChangeText={(v) => setLabelAt(i, v)}
-                  placeholder={`Guardian ${i + 1}`}
+                  placeholder="Enter their name"
                   autoCapitalize="words"
                 />
               </Field>
             ))}
           </Card>
+          {rosterError ? (
+            <Text style={[typography.footnote, { color: colors.danger, marginTop: spacing.sm, paddingHorizontal: 4 }]}>
+              {rosterError}
+            </Text>
+          ) : null}
         </View>
 
         <View style={styles.footer}>
