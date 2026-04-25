@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { View, Text, ScrollView, StyleSheet, Switch, Pressable, Animated } from 'react-native'
+import { View, Text, ScrollView, StyleSheet, Switch, Pressable, Animated, ActionSheetIOS } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 
 import { Card, GroupedList, GroupedRow } from '../../components/Card'
-import { Button } from '../../components/Button'
+
 import { AppIcon } from '../../components/AppIcon'
 import { CountdownRing } from '../../components/CountdownRing'
+import { Feather } from '@expo/vector-icons'
 import { StatusPill } from '../../components/StatusPill'
 import { ScreenHeader, SectionHeader } from '../../components/Header'
 import { colors, radii, spacing, typography } from '../../theme'
@@ -85,6 +86,18 @@ export default function OwnerDashboardScreen ({ navigation }) {
     clock.setMultiplier(value ? 60 : 1)
   }
 
+  const openSettings = () => {
+    ActionSheetIOS.showActionSheetWithOptions(
+      { options: ['Cancel', 'Sign out'], destructiveButtonIndex: 1, cancelButtonIndex: 0 },
+      (i) => {
+        if (i === 1) {
+          dispatch({ type: 'setMode', mode: null })
+          navigation.reset({ index: 0, routes: [{ name: 'ModeSelect' }] })
+        }
+      }
+    )
+  }
+
   // Interpolate ring color: flash green then settle back to real color
   const animatedRingColor = ringFlash.interpolate({
     inputRange: [0, 1],
@@ -97,6 +110,11 @@ export default function OwnerDashboardScreen ({ navigation }) {
         <ScreenHeader
           eyebrow="Vault"
           title={owner.estateLabel || 'My Vault'}
+          right={
+            <Pressable onPress={openSettings} hitSlop={12}>
+              <Feather name="settings" size={22} color={colors.textTertiary} />
+            </Pressable>
+          }
         />
 
         <View style={styles.ringWrap}>
@@ -236,10 +254,6 @@ export default function OwnerDashboardScreen ({ navigation }) {
           </Card>
 
           <View style={{ height: spacing.lg }} />
-          <Button title="Sign out" variant="ghost" onPress={() => {
-            dispatch({ type: 'setMode', mode: null })
-            navigation.reset({ index: 0, routes: [{ name: 'ModeSelect' }] })
-          }} />
         </View>
       </ScrollView>
     </SafeAreaView>
