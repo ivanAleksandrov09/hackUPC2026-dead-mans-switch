@@ -12,18 +12,23 @@
     "handoff:combine": "node scripts/shard-handoff.js --combine",
     "reconstruct": "node scripts/reconstruct.js",
     "bridge": "node bridge/server.js",
+    "bundle-worker": "node scripts/bundle-worker.js",
     "app": "cd app && npx expo start"
   },
   "dependencies": {
     "b4a": "^1.6.6",
+    "bare-events": "^2.8.2",
     "compact-encoding": "^2.15.0",
     "corestore": "^7.4.0",
+    "hypercore-crypto": "^3.4.2",
     "hyperdht": "^6.20.0",
     "hyperdrive": "^11.13.0",
     "hyperswarm": "^4.8.0",
-    "hypercore-crypto": "^3.4.2",
     "shamirs-secret-sharing": "^2.0.0",
     "sodium-native": "^4.3.0",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "bare-pack": "1.4.1"
   }
 }

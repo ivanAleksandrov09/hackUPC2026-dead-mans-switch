@@ -24,7 +24,15 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-document-picker"
+      "expo-document-picker",
+      [
+    "expo-build-properties",
+    {
+      "android": {
+        "minSdkVersion": 29
+      }
+    }
+  ]
     ]
   }
 }

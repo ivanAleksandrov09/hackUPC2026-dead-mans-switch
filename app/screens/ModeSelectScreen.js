@@ -26,6 +26,12 @@ const NEW_MODES = [
 
 export default function ModeSelectScreen ({ navigation }) {
   const { state, dispatch } = useStore()
+  const [tapCount, setTapCount] = React.useState(0)
+  const hiddenTap = () => {
+    const next = tapCount + 1
+    setTapCount(next)
+    if (next >= 5) { setTapCount(0); navigation.navigate('DevTest') }
+  }
 
   const vaults = state.owners || []
   const hasOwnerVaults = vaults.length > 0
@@ -114,7 +120,9 @@ export default function ModeSelectScreen ({ navigation }) {
           </>
         ) : (
           <View style={styles.hero}>
-            <AppIcon glyph="⚰️" tint={colors.accent} size={84} />
+            <Pressable onPress={hiddenTap} hitSlop={12}>
+              <AppIcon glyph="⚰️" tint={colors.accent} size={84} />
+            </Pressable>
             <Text style={[typography.largeTitle, styles.heroTitle]}>Vault</Text>
             <Text style={[typography.callout, styles.heroSubtitle]}>
               A decentralized inheritance system.{'\n'}No servers. No middlemen. Just you, your people, and a shared promise.

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { View, Text, ScrollView, StyleSheet, Switch, Pressable, Animated, ActionSheetIOS } from 'react-native'
+import { View, Text, ScrollView, StyleSheet, Switch, Pressable, Animated, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 
@@ -114,15 +114,16 @@ export default function OwnerDashboardScreen ({ navigation }) {
   }
 
   const openSettings = () => {
-    ActionSheetIOS.showActionSheetWithOptions(
-      { options: ['Cancel', 'Sign out'], destructiveButtonIndex: 1, cancelButtonIndex: 0 },
-      (i) => {
-        if (i === 1) {
+    Alert.alert('Settings', '', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign out', style: 'destructive',
+        onPress: () => {
           dispatch({ type: 'setMode', mode: null })
           navigation.reset({ index: 0, routes: [{ name: 'ModeSelect' }] })
         }
       }
-    )
+    ])
   }
 
   // Interpolate ring color: flash green then settle back to real color

@@ -1,9 +1,10 @@
 import Hyperswarm from 'hyperswarm'
-import { EventEmitter } from 'events'
+import EventEmitter from 'bare-events'
 import b4a from 'b4a'
 import { reconstructionTopic } from './transport.js'
 import { schemas, encode, decode } from '../protocol/schemas.js'
-import * as identity from '../core/identity.js'
+import hyperCrypto from 'hypercore-crypto'
+const identity = { sign: hyperCrypto.sign, verify: hyperCrypto.verify }
 
 // Guardians join a topic derived from the owner's pubkey when their local
 // deadline elapses. Each one announces (with a signed timestamp), discovers

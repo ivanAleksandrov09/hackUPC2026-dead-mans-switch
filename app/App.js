@@ -10,6 +10,7 @@ import { colors } from './theme'
 import { BridgeBanner } from './components/BridgeBanner'
 
 import ModeSelectScreen from './screens/ModeSelectScreen'
+import DevTestScreen from './screens/DevTestScreen'
 import SetupWelcomeScreen from './screens/owner/SetupWelcomeScreen'
 import SetupPassphraseScreen from './screens/owner/SetupPassphraseScreen'
 import SetupEstateScreen from './screens/owner/SetupEstateScreen'
@@ -78,6 +79,7 @@ function RootNavigator () {
       <Stack.Screen name="GuardianDashboard" component={GuardianDashboardScreen} />
       <Stack.Screen name="Reconstruction" component={ReconstructionScreen} />
       <Stack.Screen name="EstateUnlocked" component={EstateUnlockedScreen} />
+      <Stack.Screen name="DevTest" component={DevTestScreen} />
     </Stack.Navigator>
   )
 }
