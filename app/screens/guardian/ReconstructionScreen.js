@@ -26,9 +26,10 @@ export default function ReconstructionScreen ({ navigation }) {
     setPhase('gathering')
     subRef.current = protocol.joinReconstruction({
       ownerPubKey: guardian.ownerPubKey,
-      M, N,
-      ourGuardianIndex: guardian.shardIndex || 0,
-      ourShard: guardian.sealedShard,
+      guardianIndex: guardian.shardIndex || 0,
+      shardHex: guardian.sealedShard,
+      lastSeenAt: guardian.lastSeenAt || Date.now(),
+      M,
       onPeer: (peer) => {
         setPeers((prev) => prev.find((p) => p.guardianIndex === peer.guardianIndex)
           ? prev
@@ -40,13 +41,11 @@ export default function ReconstructionScreen ({ navigation }) {
           p.guardianIndex === guardianIndex ? { ...p, hasShard: true } : p
         ))
       },
-      onQuorum: () => {
+      onQuorum: ({ ekHex }) => {
         setPhase('quorum')
-        // Real impl: combineKey() then decrypt the inline ciphertext or
-        // replicate the Hyperdrive and decrypt from there.
         setTimeout(() => {
           setPhase('done')
-          dispatch({ type: 'setGuardian', patch: { status: 'unlocked' } })
+          dispatch({ type: 'setGuardian', patch: { status: 'unlocked', ekHex } })
           navigation.replace('EstateUnlocked')
         }, 1200)
       }

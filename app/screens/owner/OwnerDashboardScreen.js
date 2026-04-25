@@ -12,12 +12,14 @@ import { ScreenHeader, SectionHeader } from '../../components/Header'
 import { colors, radii, spacing, typography } from '../../theme'
 import { useStore } from '../../services/store'
 import { clock, formatRemaining, formatRelative } from '../../services/clock'
+import * as protocol from '../../services/protocol'
 
 export default function OwnerDashboardScreen ({ navigation }) {
   const { state, dispatch } = useStore()
   const owner = state.owner || {}
   const guardians = owner.guardians || []
   const [, setTick] = useState(0)
+  const heartbeatRef = useRef(null)
 
   // Animation refs
   const pulseAnim = useRef(new Animated.Value(1)).current
@@ -37,6 +39,12 @@ export default function OwnerDashboardScreen ({ navigation }) {
     pulse.start()
     return () => pulse.stop()
   }, [pulseAnim])
+
+  // Start heartbeat on the bridge when the dashboard mounts.
+  useEffect(() => {
+    heartbeatRef.current = protocol.startHeartbeat({ ownerPubKey: state.identity?.publicKeyHex || '' })
+    return () => heartbeatRef.current?.stop()
+  }, [])
 
   // Tick every second
   useEffect(() => {
@@ -60,6 +68,7 @@ export default function OwnerDashboardScreen ({ navigation }) {
     setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}), 120)
 
     dispatch({ type: 'setOwner', patch: { lastKick: clock.now() } })
+    heartbeatRef.current?.kick()
 
     // Button: pop up then spring back
     Animated.sequence([

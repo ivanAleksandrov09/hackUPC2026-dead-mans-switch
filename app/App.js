@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 import { StoreProvider, useStore } from './services/store'
 import { colors } from './theme'
+import { BridgeBanner } from './components/BridgeBanner'
 
 import ModeSelectScreen from './screens/ModeSelectScreen'
 import SetupWelcomeScreen from './screens/owner/SetupWelcomeScreen'
@@ -88,6 +89,7 @@ export default function App () {
         <StoreProvider>
           <NavigationContainer theme={navTheme}>
             <StatusBar style="dark" />
+            <BridgeBanner />
             <RootNavigator />
           </NavigationContainer>
         </StoreProvider>
