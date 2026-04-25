@@ -162,7 +162,7 @@ export default function GuardianDashboardScreen ({ navigation }) {
 
           <View style={{ height: spacing.lg }} />
           <Button title="Stop guarding" variant="ghost" onPress={() => {
-            dispatch({ type: 'reset' })
+            dispatch({ type: 'setMode', mode: null })
             navigation.reset({ index: 0, routes: [{ name: 'ModeSelect' }] })
           }} />
         </View>

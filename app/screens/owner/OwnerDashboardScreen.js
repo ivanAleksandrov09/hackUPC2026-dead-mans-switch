@@ -149,7 +149,7 @@ export default function OwnerDashboardScreen ({ navigation }) {
 
           <View style={{ height: spacing.lg }} />
           <Button title="Sign out" variant="ghost" onPress={() => {
-            dispatch({ type: 'reset' })
+            dispatch({ type: 'setMode', mode: null })
             navigation.reset({ index: 0, routes: [{ name: 'ModeSelect' }] })
           }} />
         </View>
