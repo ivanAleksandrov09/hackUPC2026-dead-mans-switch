@@ -1,0 +1,10 @@
+node_modules/
+.pear/
+.DS_Store
+*.log
+data/
+storage/data/
+.env
+.env.local
+dist/
+build/

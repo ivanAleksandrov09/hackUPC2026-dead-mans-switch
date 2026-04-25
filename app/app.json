@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Vault",
+    "slug": "dead-mans-switch",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "vault",
+    "splash": {
+      "backgroundColor": "#F2F2F7",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dms.vault"
+    },
+    "android": {
+      "package": "com.dms.vault",
+      "adaptiveIcon": {
+        "backgroundColor": "#F2F2F7"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-document-picker"
+    ]
+  }
+}
