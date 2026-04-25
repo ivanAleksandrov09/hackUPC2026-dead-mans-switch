@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { View, Text, ScrollView, StyleSheet, Switch, Pressable } from 'react-native'
+import React, { useEffect, useRef, useState } from 'react'
+import { View, Text, ScrollView, StyleSheet, Switch, Pressable, Animated } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 
@@ -19,6 +19,26 @@ export default function OwnerDashboardScreen ({ navigation }) {
   const guardians = owner.guardians || []
   const [, setTick] = useState(0)
 
+  // Animation refs
+  const pulseAnim = useRef(new Animated.Value(1)).current
+  const kickScale = useRef(new Animated.Value(1)).current
+  const flashOpacity = useRef(new Animated.Value(0)).current
+  const ringFlash = useRef(new Animated.Value(0)).current
+
+  // Continuous heartbeat pulse on the icon
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.22, duration: 400, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.delay(15000)
+      ])
+    )
+    pulse.start()
+    return () => pulse.stop()
+  }, [pulseAnim])
+
+  // Tick every second
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 1000)
     return () => clearInterval(id)
@@ -30,15 +50,46 @@ export default function OwnerDashboardScreen ({ navigation }) {
   const remaining = Math.max(0, deadlineMs - elapsed)
   const progress = deadlineMs > 0 ? remaining / deadlineMs : 0
 
+  const ringColor = progress > 0.4 ? colors.accent
+    : progress > 0.15 ? colors.warning
+    : colors.danger
+
   const kick = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {})
+    // Haptics: impact + success notification for satisfying double-feedback
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {})
+    setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}), 120)
+
     dispatch({ type: 'setOwner', patch: { lastKick: clock.now() } })
+
+    // Button: pop up then spring back
+    Animated.sequence([
+      Animated.spring(kickScale, { toValue: 1.04, useNativeDriver: true, speed: 40, bounciness: 8 }),
+      Animated.spring(kickScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 12 })
+    ]).start()
+
+    // Green flash overlay on the button
+    Animated.sequence([
+      Animated.timing(flashOpacity, { toValue: 1, duration: 80, useNativeDriver: true }),
+      Animated.timing(flashOpacity, { toValue: 0, duration: 600, useNativeDriver: true })
+    ]).start()
+
+    // Ring briefly flashes green
+    Animated.sequence([
+      Animated.timing(ringFlash, { toValue: 1, duration: 60, useNativeDriver: false }),
+      Animated.timing(ringFlash, { toValue: 0, duration: 900, useNativeDriver: false })
+    ]).start()
   }
 
   const toggleFastForward = (value) => {
     dispatch({ type: 'setFastForward', value })
     clock.setMultiplier(value ? 60 : 1)
   }
+
+  // Interpolate ring color: flash green then settle back to real color
+  const animatedRingColor = ringFlash.interpolate({
+    inputRange: [0, 1],
+    outputRange: [ringColor, colors.success]
+  })
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -53,23 +104,29 @@ export default function OwnerDashboardScreen ({ navigation }) {
             progress={progress}
             primary={formatRemaining(remaining)}
             caption={remaining > 0 ? 'until reconstruction' : 'deadline reached'}
+            tint={animatedRingColor}
           />
         </View>
 
         <View style={styles.body}>
           <Pressable onPress={kick}>
-            {({ pressed }) => (
-              <View style={[styles.kickButton, pressed && { transform: [{ scale: 0.98 }], opacity: 0.95 }]}>
+            <Animated.View style={[styles.kickButton, { transform: [{ scale: kickScale }] }]}>
+              {/* Green flash overlay */}
+              <Animated.View
+                pointerEvents="none"
+                style={[StyleSheet.absoluteFill, styles.flashOverlay, { opacity: flashOpacity }]}
+              />
+              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                 <AppIcon glyph="💗" tint={colors.iconTint.heartbeat} size={44} />
-                <View style={{ flex: 1, marginLeft: spacing.md }}>
-                  <Text style={[typography.headline, { color: colors.text }]}>I'm alive</Text>
-                  <Text style={[typography.footnote, { color: colors.textSecondary }]}>
-                    Last kick {formatRelative(clock.now() - lastKick)}
-                  </Text>
-                </View>
-                <Text style={[typography.footnote, { color: colors.accent, fontWeight: '600' }]}>Tap →</Text>
+              </Animated.View>
+              <View style={{ flex: 1, marginLeft: spacing.md }}>
+                <Text style={[typography.headline, { color: colors.text }]}>I'm alive</Text>
+                <Text style={[typography.footnote, { color: colors.textSecondary }]}>
+                  Last kick {formatRelative(clock.now() - lastKick)}
+                </Text>
               </View>
-            )}
+              <Text style={[typography.footnote, { color: colors.accent, fontWeight: '600' }]}>Tap →</Text>
+            </Animated.View>
           </Pressable>
 
           <SectionHeader title="My Estate" />
@@ -166,7 +223,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg
   },
   body: { paddingHorizontal: spacing.lg },
-  estateButton: {
+  kickButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
@@ -177,9 +234,15 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 1 },
     elevation: 2,
-    marginBottom: spacing.sm
+    marginBottom: spacing.sm,
+    overflow: 'hidden'
   },
-  kickButton: {
+  flashOverlay: {
+    backgroundColor: colors.success,
+    borderRadius: radii.lg,
+    opacity: 0
+  },
+  estateButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
