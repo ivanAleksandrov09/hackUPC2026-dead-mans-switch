@@ -83,7 +83,7 @@ export default function OwnerDashboardScreen ({ navigation }) {
 
   const toggleFastForward = (value) => {
     dispatch({ type: 'setFastForward', value })
-    clock.setMultiplier(value ? 60 : 1)
+    clock.setMultiplier(value ? 86400 : 1)
   }
 
   const openSettings = () => {
@@ -130,7 +130,7 @@ export default function OwnerDashboardScreen ({ navigation }) {
           {progress < 0.15 && remaining > 0 && (
             <View style={styles.dangerBanner}>
               <Text style={[typography.footnote, { color: colors.danger, fontWeight: '700' }]}>
-                ⚠️  Deadline critical — tap now or your Guardians can unlock your vault.
+                Deadline critical — tap now or your Guardians can unlock your vault.
               </Text>
             </View>
           )}
@@ -246,7 +246,7 @@ export default function OwnerDashboardScreen ({ navigation }) {
               <View style={{ flex: 1 }}>
                 <Text style={[typography.body, { color: colors.text }]}>Fast-forward time</Text>
                 <Text style={[typography.footnote, { color: colors.textSecondary, marginTop: 2 }]}>
-                  Compress your deadline by 60×.
+                  30 days → ~30 seconds.
                 </Text>
               </View>
               <Switch value={state.fastForward} onValueChange={toggleFastForward} />
