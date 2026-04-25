@@ -3,7 +3,8 @@ export {
   encryptEstate,
   decryptEstate,
   sealShard,
-  openShard
+  openShard,
+  deriveKey
 } from './crypto.js'
 
 export { splitKey, combineKey } from './shamir.js'

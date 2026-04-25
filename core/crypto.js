@@ -75,3 +75,14 @@ export function openShard (sealedBuf, keypair) {
   if (!ok) throw new Error('failed to open sealed shard')
   return out
 }
+
+// Derives the final decryption master key by hashing Shamir-recovered secret
+// and timelock secret together: master_key = BLAKE2b(shamirSecret || timelockSecret)
+export function deriveKey (shamirSecret, timelockSecret) {
+  if (!b4a.isBuffer(shamirSecret)) shamirSecret = b4a.from(shamirSecret)
+  if (!b4a.isBuffer(timelockSecret)) timelockSecret = b4a.from(timelockSecret)
+  const combined = b4a.concat([shamirSecret, timelockSecret])
+  const masterKey = b4a.alloc(KEY_BYTES)
+  sodium.crypto_generichash(masterKey, combined)
+  return masterKey
+}

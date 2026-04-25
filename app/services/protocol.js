@@ -3,6 +3,7 @@
 // Falls back to mock mode if the bridge is unreachable.
 
 import { BRIDGE_URL } from './config.js'
+import { ping as solanaPing, warmUp as solanaWarmUp } from './solana.js'
 
 // -- Connection ---------------------------------------------------------
 
@@ -122,10 +123,15 @@ export function generateInviteCode () {
 }
 
 export function startHeartbeat ({ ownerPubKey }) {
-  call('startHeartbeat').catch(() => {})
+  // Kick off airdrop + switch-account init in the background so the first
+  // real ping is fast.
+  solanaWarmUp()
   return {
-    kick () { call('kick').catch(() => {}) },
-    async stop () {}
+    async kick () {
+      const sig = await solanaPing()
+      return sig
+    },
+    async stop () {},
   }
 }
 

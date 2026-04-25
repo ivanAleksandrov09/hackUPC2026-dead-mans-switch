@@ -1,0 +1,19 @@
+[package]
+name = "dead-mans-switch"
+version = "0.1.0"
+description = "Dead Man's Switch — Solana on-chain liveness oracle"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "dead_mans_switch"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = { version = "0.31.0", features = ["init-if-needed"] }

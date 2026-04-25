@@ -8,3 +8,4 @@ storage/data/
 .env.local
 dist/
 build/
+solana/test-ledger/
