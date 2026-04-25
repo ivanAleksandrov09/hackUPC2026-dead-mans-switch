@@ -120,7 +120,7 @@ export default function VaultArmedScreen ({ navigation }) {
           <View style={styles.shieldRow}>
             {Array.from({ length: owner.N || 0 }).map((_, i) => (
               <View key={i} style={{ opacity: i < (owner.M || 0) ? 1 : 0.3 }}>
-                <AppIcon glyph="🛡️" tint={i < (owner.M || 0) ? colors.iconTint.guardian : colors.textTertiary} size={44} />
+                <AppIcon icon="shield" tint={i < (owner.M || 0) ? colors.iconTint.guardian : colors.textTertiary} size={44} />
               </View>
             ))}
           </View>

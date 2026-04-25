@@ -39,7 +39,7 @@ export default function EstateUnlockedScreen ({ navigation }) {
         <View style={styles.banner}>
           <Card style={{ backgroundColor: colors.successMuted }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <AppIcon glyph="🔓" tint={colors.success} size={44} />
+              <AppIcon icon="unlock" tint={colors.success} size={44} />
               <View style={{ flex: 1, marginLeft: spacing.md }}>
                 <Text style={[typography.headline, { color: colors.success }]}>
                   {state.guardian?.M || 2}-of-{state.guardian?.N || 3} threshold satisfied
@@ -58,7 +58,7 @@ export default function EstateUnlockedScreen ({ navigation }) {
             {items.map((it, i) => (
               <GroupedRow key={it.id} last={i === items.length - 1} onPress={() => setActiveId(it.id)}>
                 <AppIcon
-                  glyph={it.kind === 'file' ? '📄' : '📝'}
+                  icon={it.kind === 'file' ? 'file' : 'file-text'}
                   tint={it.kind === 'file' ? colors.iconTint.estate : colors.warning}
                   size={36}
                 />

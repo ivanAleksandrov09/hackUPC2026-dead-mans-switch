@@ -36,7 +36,7 @@ export default function GuardianRosterScreen ({ navigation }) {
               return (
                 <GroupedRow key={g.index} last={i === guardians.length - 1}>
                   <AppIcon
-                    glyph="🛡️"
+                    icon="shield"
                     tint={isLive ? colors.iconTint.guardian : colors.textTertiary}
                     size={40}
                   />

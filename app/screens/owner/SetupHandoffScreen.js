@@ -129,7 +129,7 @@ export default function SetupHandoffScreen ({ navigation }) {
                 <Card key={g.index} style={styles.inviteCard}>
                   <View style={styles.inviteHeader}>
                     <AppIcon
-                      glyph={isDone ? '✓' : '🛡️'}
+                      icon={isDone ? 'check' : 'shield'}
                       tint={isDone ? colors.success : colors.iconTint.guardian}
                       size={44}
                     />

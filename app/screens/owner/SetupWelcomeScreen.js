@@ -11,10 +11,10 @@ import { colors, spacing, typography } from '../../theme'
 import { useStore } from '../../services/store'
 
 const STEPS = [
-  { glyph: '🔑', tint: colors.accent,                  title: 'Generate an Estate Key',   body: 'A 32-byte secret encrypts everything. Only you ever hold it whole.' },
-  { glyph: '📁', tint: colors.iconTint.estate,         title: 'Add your estate',          body: 'Drag in passwords, files, or notes. They never leave your device unencrypted.' },
-  { glyph: '🛡️', tint: colors.iconTint.guardian,       title: 'Choose your Guardians',    body: '2-of-3, 3-of-5 — whatever feels right. Each holds a sealed shard, useless alone.' },
-  { glyph: '💗', tint: colors.iconTint.heartbeat,      title: 'Stay alive',               body: 'Open the app once in a while. If you go silent past your deadline, your Guardians can unlock your estate together.' }
+  { icon: 'key',      tint: colors.accent,               title: 'Generate an Estate Key',  body: 'A 32-byte secret encrypts everything. Only you ever hold it whole.' },
+  { icon: 'folder',   tint: colors.iconTint.estate,      title: 'Add your estate',         body: 'Passwords, files, notes. Nothing leaves your device unencrypted.' },
+  { icon: 'shield',   tint: colors.iconTint.guardian,    title: 'Appoint Guardians',       body: '2-of-3, 3-of-5 — your choice. Each holds a sealed shard, useless alone.' },
+  { icon: 'activity', tint: colors.iconTint.heartbeat,   title: 'Stay present',            body: 'Check in periodically. If you go silent past your deadline, Guardians can reconstruct together.' }
 ]
 
 export default function SetupWelcomeScreen ({ navigation }) {
@@ -43,7 +43,7 @@ export default function SetupWelcomeScreen ({ navigation }) {
           {STEPS.map((s, i) => (
             <Card key={i} style={styles.stepCard}>
               <View style={styles.stepRow}>
-                <AppIcon glyph={s.glyph} tint={s.tint} size={48} />
+                <AppIcon icon={s.icon} tint={s.tint} size={48} />
                 <View style={styles.stepText}>
                   <Text style={[typography.headline, { color: colors.text }]}>{s.title}</Text>
                   <Text style={[typography.subhead, { color: colors.textSecondary, marginTop: 2 }]}>

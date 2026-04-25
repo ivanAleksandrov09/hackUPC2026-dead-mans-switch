@@ -80,7 +80,7 @@ export default function GuardianAcceptingScreen ({ route, navigation }) {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <View style={styles.centered}>
-          <AppIcon glyph="⚠️" tint={colors.danger} size={72} />
+          <AppIcon icon="alert-triangle" tint={colors.danger} size={72} />
           <Text style={[typography.headline, { color: colors.danger, marginTop: spacing.lg }]}>Handoff failed</Text>
           <Text style={[typography.body, { color: colors.textSecondary, marginTop: spacing.sm, textAlign: 'center' }]}>
             {error}
@@ -103,7 +103,7 @@ export default function GuardianAcceptingScreen ({ route, navigation }) {
         <View style={styles.body}>
           <View style={styles.illustration}>
             <AppIcon
-              glyph={done ? '✓' : '🔐'}
+              icon={done ? 'check' : 'lock'}
               tint={done ? colors.success : colors.iconTint.guardian}
               size={96}
             />

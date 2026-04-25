@@ -45,7 +45,7 @@ export default function VaultListScreen ({ navigation }) {
               {({ pressed }) => (
                 <Card style={[styles.vaultCard, pressed && styles.pressed]}>
                   <View style={styles.row}>
-                    <AppIcon glyph="🔒" tint={colors.iconTint.estate} size={48} />
+                    <AppIcon icon="lock" tint={colors.iconTint.estate} size={48} />
                     <View style={styles.info}>
                       <Text style={[typography.headline, { color: colors.text }]}>
                         {vault.estateLabel || 'My Vault'}

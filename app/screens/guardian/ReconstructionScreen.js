@@ -68,7 +68,7 @@ export default function ReconstructionScreen ({ navigation }) {
         <View style={styles.body}>
           <Card style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
             <AppIcon
-              glyph={phase === 'done' ? '✓' : '🔓'}
+              icon={phase === 'done' ? 'check' : 'unlock'}
               tint={phase === 'done' ? colors.success : colors.iconTint.reconstruction}
               size={84}
             />
@@ -97,7 +97,7 @@ export default function ReconstructionScreen ({ navigation }) {
 
           <Card padded={false} style={{ overflow: 'hidden' }}>
             <View style={[styles.peerRow]}>
-              <AppIcon glyph="🛡️" tint={colors.iconTint.guardian} size={36} />
+              <AppIcon icon="shield" tint={colors.iconTint.guardian} size={36} />
               <View style={{ flex: 1, marginLeft: spacing.md }}>
                 <Text style={[typography.body, { color: colors.text }]}>You · Guardian #{(guardian.shardIndex || 0) + 1}</Text>
                 <Text style={[typography.footnote, { color: colors.textSecondary }]}>
@@ -114,7 +114,7 @@ export default function ReconstructionScreen ({ navigation }) {
                   styles.peerDivider
                 ]}
               >
-                <AppIcon glyph="🛡️" tint={p.hasShard ? colors.iconTint.guardian : colors.textTertiary} size={36} />
+                <AppIcon icon="shield" tint={p.hasShard ? colors.iconTint.guardian : colors.textTertiary} size={36} />
                 <View style={{ flex: 1, marginLeft: spacing.md }}>
                   <Text style={[typography.body, { color: colors.text }]}>Guardian #{p.guardianIndex + 1}</Text>
                   <Text style={[typography.footnote, { color: colors.textSecondary }]}>

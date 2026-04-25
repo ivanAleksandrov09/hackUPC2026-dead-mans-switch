@@ -73,7 +73,7 @@ export default function SetupEstateScreen ({ navigation }) {
             {items.map((it, i) => (
               <GroupedRow key={it.id} last={i === items.length - 1} onPress={() => setActiveId(it.id)}>
                 <AppIcon
-                  glyph={it.kind === 'file' ? '📄' : '📝'}
+                  icon={it.kind === 'file' ? 'file' : 'file-text'}
                   tint={it.kind === 'file' ? colors.iconTint.estate : colors.warning}
                   size={36}
                 />

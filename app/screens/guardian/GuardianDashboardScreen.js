@@ -118,7 +118,7 @@ export default function GuardianDashboardScreen ({ navigation }) {
           <SectionHeader title="Your shard" />
           <GroupedList>
             <GroupedRow>
-              <AppIcon glyph="🔑" tint={colors.iconTint.shard} size={36} />
+              <AppIcon icon="key" tint={colors.iconTint.shard} size={36} />
               <View style={{ flex: 1, marginLeft: spacing.md }}>
                 <Text style={[typography.body, { color: colors.text }]}>Shard #{(guardian.shardIndex || 0) + 1}</Text>
                 <Text style={[typography.footnote, { color: colors.textTertiary }]}>
@@ -128,7 +128,7 @@ export default function GuardianDashboardScreen ({ navigation }) {
               <StatusPill tone="online" label="Sealed" showDot={false} />
             </GroupedRow>
             <GroupedRow last>
-              <AppIcon glyph="🔗" tint={colors.iconTint.estate} size={36} />
+              <AppIcon icon="link" tint={colors.iconTint.estate} size={36} />
               <View style={{ flex: 1, marginLeft: spacing.md }}>
                 <Text style={[typography.body, { color: colors.text }]}>Owner public key</Text>
                 <Text numberOfLines={1} style={[typography.mono, { color: colors.textTertiary, fontSize: 12, marginTop: 2 }]}>

@@ -183,7 +183,7 @@ export default function OwnerDashboardScreen ({ navigation }) {
                 style={[StyleSheet.absoluteFill, styles.flashOverlay, { opacity: flashOpacity }]}
               />
               <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                <AppIcon glyph="💗" tint={colors.iconTint.heartbeat} size={44} />
+                <AppIcon icon="activity" tint={colors.iconTint.heartbeat} size={44} />
               </Animated.View>
               <View style={{ flex: 1, marginLeft: spacing.md }}>
                 <Text style={[typography.headline, { color: colors.text }]}>I'm alive</Text>
@@ -199,7 +199,7 @@ export default function OwnerDashboardScreen ({ navigation }) {
           <Pressable onPress={() => navigation.navigate('EstateBrowser')}>
             {({ pressed }) => (
               <View style={[styles.estateButton, pressed && { transform: [{ scale: 0.98 }], opacity: 0.95 }]}>
-                <AppIcon glyph="🏠" tint={colors.iconTint.estate} size={44} />
+                <AppIcon icon="folder" tint={colors.iconTint.estate} size={44} />
                 <View style={{ flex: 1, marginLeft: spacing.md }}>
                   <Text style={[typography.headline, { color: colors.text }]}>View estate</Text>
                   <Text style={[typography.footnote, { color: colors.textSecondary }]}>
@@ -225,7 +225,7 @@ export default function OwnerDashboardScreen ({ navigation }) {
               return (
                 <GroupedRow key={g.index} last={i === guardians.length - 1}>
                   <AppIcon
-                    glyph="🛡️"
+                    icon="shield"
                     tint={isLive ? colors.iconTint.guardian : colors.textTertiary}
                     size={36}
                   />
@@ -249,7 +249,7 @@ export default function OwnerDashboardScreen ({ navigation }) {
                 return (
                   <View key={i} style={[styles.shieldWrap, { opacity: filled ? 1 : 0.3 }]}>
                     <AppIcon
-                      glyph="🛡️"
+                      icon="shield"
                       tint={filled ? colors.iconTint.guardian : colors.textTertiary}
                       size={40}
                     />

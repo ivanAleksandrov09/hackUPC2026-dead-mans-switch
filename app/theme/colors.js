@@ -1,12 +1,12 @@
 // iOS / iCloud system palette. Sticking close to Apple's Human Interface
 // Guidelines so the app feels native on iOS and familiar on Android.
 export const colors = {
-  background: '#F2F2F7',          // iOS systemGroupedBackground
-  surface: '#FFFFFF',             // card / list background
+  background: '#FFFFFF',
+  surface: '#FFFFFF',
   surfaceElevated: '#FFFFFF',
-  surfaceMuted: '#F9F9FB',
-  separator: '#E5E5EA',
-  border: '#D1D1D6',
+  surfaceMuted: '#F7F7FA',
+  separator: '#EBEBEF',
+  border: '#E0E0E6',
 
   text: '#1C1C1E',                // primary label
   textSecondary: '#6E6E73',       // secondary label

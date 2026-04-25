@@ -26,14 +26,18 @@ export function GroupedRow ({ children, last, onPress, style }) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderRadius: radii.lg
+    borderRadius: radii.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border
   },
   padded: {
-    padding: spacing.lg
+    padding: spacing.lg + 4
   },
   list: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     overflow: 'hidden'
   },
   row: {

@@ -1,27 +1,20 @@
 import React from 'react'
-import { View, Text, StyleSheet } from 'react-native'
-import { colors, radii, typography } from '../theme'
+import { View, StyleSheet } from 'react-native'
+import { Feather } from '@expo/vector-icons'
+import { colors, radii } from '../theme'
 
-// Square iOS-style app icon. Uses an emoji glyph as a stand-in for an SVG icon
-// — keeps the demo zero-asset while still feeling native. Swap the glyph for a
-// react-native-svg icon when assets land.
-export function AppIcon ({ glyph, tint = colors.accent, size = 56 }) {
+export function AppIcon ({ icon = 'shield', tint = colors.accent, size = 56, iconColor = '#fff' }) {
   return (
     <View style={[
       styles.icon,
       {
         width: size,
         height: size,
-        borderRadius: size * 0.235, // iOS continuous corner ratio
+        borderRadius: size * 0.235,
         backgroundColor: tint
       }
     ]}>
-      <Text style={[
-        typography.title2,
-        { color: colors.textOnAccent, fontSize: size * 0.5, lineHeight: size }
-      ]}>
-        {glyph}
-      </Text>
+      <Feather name={icon} size={size * 0.46} color={iconColor} />
     </View>
   )
 }
@@ -31,7 +24,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.10,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 6,
     elevation: 2

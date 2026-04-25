@@ -47,7 +47,7 @@ export default function GuardianOnboardingScreen ({ navigation }) {
 
         <View style={styles.body}>
           <View style={styles.illustration}>
-            <AppIcon glyph="🛡️" tint={colors.iconTint.guardian} size={84} />
+            <AppIcon icon="shield" tint={colors.iconTint.guardian} size={84} />
           </View>
 
           <Card>

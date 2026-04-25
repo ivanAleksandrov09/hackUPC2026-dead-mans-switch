@@ -10,17 +10,17 @@ import { useStore } from '../services/store'
 const NEW_MODES = [
   {
     id: 'owner',
-    glyph: '🔒',
+    icon: 'lock',
     tint: colors.iconTint.estate,
-    title: 'Set up my Vault',
-    subtitle: 'Encrypt your estate and choose Guardians who will release it if you go silent.'
+    title: 'Create a Vault',
+    subtitle: 'Encrypt your estate and appoint Guardians who can release it if you go silent.'
   },
   {
     id: 'guardian',
-    glyph: '🛡️',
+    icon: 'shield',
     tint: colors.iconTint.guardian,
     title: 'Become a Guardian',
-    subtitle: 'Hold a sealed key shard for someone you care about. Their vault opens only with you.'
+    subtitle: 'Hold a sealed key shard for someone you trust. Their vault opens only when M Guardians agree.'
   }
 ]
 
@@ -54,10 +54,10 @@ export default function ModeSelectScreen ({ navigation }) {
             {returningName ? (
               <View style={styles.welcomeBox}>
                 <Text style={[typography.largeTitle, { color: colors.text }]}>
-                  Welcome back, {returningName}!
+                  Welcome back, {returningName}.
                 </Text>
                 <Text style={[typography.subhead, { color: colors.textSecondary, marginTop: spacing.xs }]}>
-                  Good to see you're still with us. 🤍
+                  Good to see you're still with us.
                 </Text>
               </View>
             ) : (
@@ -73,7 +73,7 @@ export default function ModeSelectScreen ({ navigation }) {
                 {({ pressed }) => (
                   <Card style={[styles.savedCard, pressed && styles.pressed]}>
                     <View style={styles.row}>
-                      <AppIcon glyph="🔒" tint={colors.iconTint.estate} size={48} />
+                      <AppIcon icon="lock" tint={colors.iconTint.estate} size={48} />
                       <View style={styles.rowText}>
                         <Text style={[typography.headline, { color: colors.text }]}>My Vaults</Text>
                         <Text style={[typography.footnote, { color: colors.textSecondary, marginTop: 2 }]}>
@@ -92,7 +92,7 @@ export default function ModeSelectScreen ({ navigation }) {
                 {({ pressed }) => (
                   <Card style={[styles.savedCard, pressed && styles.pressed]}>
                     <View style={styles.row}>
-                      <AppIcon glyph="🛡️" tint={colors.iconTint.guardian} size={48} />
+                      <AppIcon icon="shield" tint={colors.iconTint.guardian} size={48} />
                       <View style={styles.rowText}>
                         <Text style={[typography.headline, { color: colors.text }]}>
                           {state.guardian?.ownerLabel || 'Guardian role'}
@@ -114,10 +114,10 @@ export default function ModeSelectScreen ({ navigation }) {
           </>
         ) : (
           <View style={styles.hero}>
-            <AppIcon glyph="⚰️" tint={colors.accent} size={84} />
+            <AppIcon icon="lock" tint={colors.accent} size={84} />
             <Text style={[typography.largeTitle, styles.heroTitle]}>Vault</Text>
             <Text style={[typography.callout, styles.heroSubtitle]}>
-              A decentralized inheritance system.{'\n'}No servers. No middlemen. Just you, your people, and a shared promise.
+              Decentralised inheritance.{'\n'}No servers. No middlemen. Threshold cryptography.
             </Text>
           </View>
         )}
@@ -127,7 +127,7 @@ export default function ModeSelectScreen ({ navigation }) {
             {({ pressed }) => (
               <Card style={[styles.modeCard, pressed && styles.pressed]}>
                 <View style={styles.row}>
-                  <AppIcon glyph={m.glyph} tint={m.tint} size={56} />
+                  <AppIcon icon={m.icon} tint={m.tint} size={56} />
                   <View style={styles.rowText}>
                     <Text style={[typography.headline, { color: colors.text }]}>{m.title}</Text>
                     <Text style={[typography.subhead, { color: colors.textSecondary, marginTop: 2 }]}>
