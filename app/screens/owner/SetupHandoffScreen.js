@@ -79,7 +79,7 @@ export default function SetupHandoffScreen ({ navigation }) {
     const id = state.owner?.id || 'vault-' + Date.now().toString(36)
     dispatch({ type: 'setOwner', patch: { id, driveKey: 'stub-' + id, lastKick: Date.now() } })
     dispatch({ type: 'saveOwner' })
-    navigation.reset({ index: 0, routes: [{ name: 'OwnerDashboard' }] })
+    navigation.reset({ index: 0, routes: [{ name: 'VaultArmed' }] })
   }
 
   if (prepError) {

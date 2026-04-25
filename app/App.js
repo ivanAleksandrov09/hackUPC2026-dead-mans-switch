@@ -19,6 +19,7 @@ import OwnerDashboardScreen from './screens/owner/OwnerDashboardScreen'
 import EstateBrowserScreen from './screens/owner/EstateBrowserScreen'
 import GuardianRosterScreen from './screens/owner/GuardianRosterScreen'
 import VaultListScreen from './screens/owner/VaultListScreen'
+import VaultArmedScreen from './screens/owner/VaultArmedScreen'
 import GuardianOnboardingScreen from './screens/guardian/GuardianOnboardingScreen'
 import GuardianAcceptingScreen from './screens/guardian/GuardianAcceptingScreen'
 import GuardianDashboardScreen from './screens/guardian/GuardianDashboardScreen'
@@ -72,6 +73,7 @@ function RootNavigator () {
       <Stack.Screen name="EstateBrowser" component={EstateBrowserScreen} />
       <Stack.Screen name="GuardianRoster" component={GuardianRosterScreen} />
       <Stack.Screen name="VaultList" component={VaultListScreen} />
+      <Stack.Screen name="VaultArmed" component={VaultArmedScreen} />
 
       <Stack.Screen name="GuardianOnboarding" component={GuardianOnboardingScreen} />
       <Stack.Screen name="GuardianAccepting" component={GuardianAcceptingScreen} />
