@@ -1,101 +1,159 @@
-// Mock protocol service. Mirrors the real API surface in /protocol/CONTRACTS.md
-// so the screens code against real-shaped responses today, and the team can
-// swap each function for a real implementation backed by /core, /net, /storage
-// without touching the UI.
-//
-// When wiring real implementations:
-//   - `generateInviteCode`, `acceptInvite`, `openInvite` -> /net/invite.js
-//   - `splitKey`, `combineKey`                          -> /core/shamir.js
-//   - `encryptEstate`, `decryptEstate`                  -> /core/crypto.js
-//   - `startHeartbeat`, `observeHeartbeat`              -> /net/heartbeat.js
-//   - `joinReconstruction`                              -> /net/reconstruction.js
+// WebSocket client — talks to bridge/server.js running on the laptop.
+// Set BRIDGE_URL in app/services/config.js to point at your laptop's LAN IP.
+// Falls back to mock mode if the bridge is unreachable.
 
-const WORDS = [
-  'amber','orchid','forest','river','ember','glacier','meadow','harbor',
-  'thunder','pebble','lantern','quartz','falcon','maple','silver','tundra',
-  'beacon','cinder','driftwood','echo','fjord','gypsum','horizon','ivory',
-  'jasper','kelp','lichen','monsoon','nimbus','opal','prairie','quill',
-  'raven','sequoia','tideline','umbra','vellum','willow','xenon','yarrow',
-  'zenith','aurora','basalt','comet','dahlia','eddy','fennel','galaxy'
-]
+import { BRIDGE_URL } from './config.js'
 
-function pickWord () {
-  return WORDS[Math.floor(Math.random() * WORDS.length)]
+// -- Connection ---------------------------------------------------------
+
+let ws = null
+let connected = false
+let pendingResolvers = {}   // id -> { resolve, reject }
+let eventHandlers = {}      // type -> [callback]
+let reconnectTimer = null
+let _idCounter = 0
+
+function nextId () { return String(++_idCounter) }
+
+function connect () {
+  if (ws) return
+  ws = new WebSocket(BRIDGE_URL)
+
+  ws.onopen = () => {
+    connected = true
+    console.log('[bridge] connected')
+    clearTimeout(reconnectTimer)
+  }
+
+  ws.onmessage = (e) => {
+    let msg
+    try { msg = JSON.parse(e.data) } catch { return }
+
+    if (msg.id !== undefined) {
+      // Reply to a pending request.
+      const r = pendingResolvers[msg.id]
+      if (!r) return
+      delete pendingResolvers[msg.id]
+      if (msg.error) r.reject(new Error(msg.error))
+      else r.resolve(msg.result)
+    } else if (msg.type) {
+      // Unsolicited event.
+      for (const cb of (eventHandlers[msg.type] || [])) {
+        try { cb(msg) } catch {}
+      }
+    }
+  }
+
+  ws.onclose = () => {
+    connected = false
+    ws = null
+    console.log('[bridge] disconnected — retrying in 3s')
+    reconnectTimer = setTimeout(connect, 3000)
+  }
+
+  ws.onerror = () => {}
+}
+
+function call (method, params = {}) {
+  return new Promise((resolve, reject) => {
+    if (!connected) return reject(new Error('bridge not connected'))
+    const id = nextId()
+    pendingResolvers[id] = { resolve, reject }
+    ws.send(JSON.stringify({ id, method, params }))
+    // 30s timeout per call.
+    setTimeout(() => {
+      if (pendingResolvers[id]) {
+        delete pendingResolvers[id]
+        reject(new Error(`timeout: ${method}`))
+      }
+    }, 30000)
+  })
+}
+
+function on (type, cb) {
+  if (!eventHandlers[type]) eventHandlers[type] = []
+  eventHandlers[type].push(cb)
+  return () => { eventHandlers[type] = eventHandlers[type].filter((f) => f !== cb) }
+}
+
+// Start connecting immediately when this module is imported.
+connect()
+
+export function isConnected () { return connected }
+
+// -- API (mirrors the mock surface exactly) ----------------------------
+
+export async function generateEstateKey () {
+  const { ekHex } = await call('generateEstateKey')
+  return ekHex
+}
+
+export async function splitKey (ekHex, { M, N }) {
+  const { shards } = await call('splitKey', { ekHex, M, N })
+  return shards   // string[]
+}
+
+export async function encryptEstate (text, ekHex) {
+  const { ctHex } = await call('encryptEstate', { text, ekHex })
+  return ctHex
+}
+
+export async function decryptEstate (ctHex, ekHex) {
+  const { text } = await call('decryptEstate', { ctHex, ekHex })
+  return text
+}
+
+export async function combineKey (shards) {
+  const { ekHex } = await call('combineKey', { shards })
+  return ekHex
 }
 
 export function generateInviteCode () {
-  return Array.from({ length: 6 }, pickWord).join('-')
+  // Invite codes are generated locally (pure JS, no native deps).
+  const WORDS = [
+    'amber','orchid','forest','river','ember','glacier','meadow','harbor',
+    'thunder','pebble','lantern','quartz','falcon','maple','silver','tundra',
+    'beacon','cinder','driftwood','echo','fjord','gypsum','horizon','ivory',
+    'jasper','kelp','lichen','monsoon','nimbus','opal','prairie','quill',
+    'raven','sequoia','tidal','umbra','vellum','willow','xenon','yarrow',
+    'zenith','aurora','basalt','comet','dahlia','eddy','fennel','galaxy'
+  ]
+  return Array.from({ length: 6 }, () => WORDS[Math.floor(Math.random() * WORDS.length)]).join('-')
 }
 
-let mockEstateKey = null
-
-export async function generateEstateKey () {
-  // 32 random bytes, presented as hex.
-  const bytes = new Uint8Array(32)
-  for (let i = 0; i < 32; i++) bytes[i] = Math.floor(Math.random() * 256)
-  mockEstateKey = Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('')
-  return mockEstateKey
-}
-
-export async function splitKey (ek, { M, N }) {
-  // Mock shards: just numbered placeholders. Real impl uses GF(256) Shamir.
-  return Array.from({ length: N }, (_, i) => `mock-shard-${i + 1}-of-${N}-thresh-${M}`)
-}
-
-export async function encryptEstate (plaintextBuf, ek) {
-  // Mock: prepend a marker so we can "decrypt" later.
-  return `enc:${ek.slice(0, 8)}:${plaintextBuf}`
-}
-
-export async function decryptEstate (ciphertext, ek) {
-  if (!ciphertext.startsWith('enc:')) throw new Error('not a mock ciphertext')
-  const [, , ...rest] = ciphertext.split(':')
-  return rest.join(':')
-}
-
-// Returns a controller object. The real impl returns a network-backed handle.
 export function startHeartbeat ({ ownerPubKey }) {
-  let lastKick = Date.now()
+  call('startHeartbeat').catch(() => {})
   return {
-    kick () { lastKick = Date.now() },
-    get lastKick () { return lastKick },
+    kick () { call('kick').catch(() => {}) },
     async stop () {}
   }
 }
 
-// Simulates a guardian observing the owner's heartbeat. In dev mode, we just
-// fire a synthetic update every few seconds.
 export function observeHeartbeat ({ ownerPubKey, onUpdate }) {
-  let stopped = false
-  const tick = () => {
-    if (stopped) return
-    onUpdate?.(Date.now())
-    setTimeout(tick, 5000)
-  }
-  tick()
-  return { stop () { stopped = true } }
+  call('observeHeartbeat', { ownerPubKey }).catch(() => {})
+  const off = on('heartbeat', (msg) => onUpdate?.(msg.lastSeenAt))
+  return { stop () { off() } }
 }
 
-// Simulates the reconstruction swarm gathering shards over time.
-export function joinReconstruction ({ ownerPubKey, M, N, ourShard, ourGuardianIndex, onPeer, onShard, onQuorum }) {
-  const collected = new Set([ourGuardianIndex])
-  let stopped = false
-  const others = Array.from({ length: N }, (_, i) => i).filter((i) => i !== ourGuardianIndex)
+export async function openInvite (code, shardHex) {
+  await call('openInvite', { code, shardHex })
+}
 
-  const fakePeer = (i, delay) => {
-    setTimeout(() => {
-      if (stopped) return
-      onPeer?.({ guardianIndex: i, lastSeenAt: Date.now() - 60000 })
-      setTimeout(() => {
-        if (stopped) return
-        if (collected.has(i)) return
-        collected.add(i)
-        onShard?.({ guardianIndex: i, total: collected.size })
-        if (collected.size >= M) onQuorum?.({ size: collected.size })
-      }, 1200)
-    }, delay)
-  }
-  others.slice(0, M).forEach((i, idx) => fakePeer(i, 2000 + idx * 2500))
+export function acceptInvite (code, { onShard } = {}) {
+  call('acceptInvite', { code }).catch(() => {})
+  const off = on('shardReceived', (msg) => {
+    onShard?.(msg.shardHex)
+    off()
+  })
+  return { stop () { off() } }
+}
 
-  return { stop () { stopped = true } }
+export function joinReconstruction ({ ownerPubKey, shardHex, guardianIndex, lastSeenAt, M, onPeer, onShard, onQuorum }) {
+  call('joinReconstruction', { ownerPubKey, shardHex, guardianIndex, lastSeenAt, M }).catch(() => {})
+  const offs = [
+    on('peer',   (d) => onPeer?.(d)),
+    on('shard',  (d) => onShard?.(d)),
+    on('quorum', (d) => onQuorum?.(d))
+  ]
+  return { stop () { offs.forEach((f) => f()) } }
 }
