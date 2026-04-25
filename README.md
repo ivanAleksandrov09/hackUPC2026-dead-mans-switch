@@ -1,6 +1,6 @@
 # Vault — a decentralized dead man's switch
 
-A peer-to-peer "digital will" built on the Hyper stack, with a React Native (Expo) mobile UI inspired by iCloud.
+A peer-to-peer "digital will" built on the Hyper stack, with a React Native (Expo) mobile UI.
 
 > Set up a Vault. Choose people you trust. If you go silent past your deadline, your Guardians can come together to unlock everything you left them. No servers, no middlemen, just threshold cryptography over a public DHT.
 
