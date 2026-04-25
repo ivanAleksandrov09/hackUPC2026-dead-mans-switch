@@ -45,16 +45,29 @@ export default function ModeSelectScreen ({ navigation }) {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.hero}>
-          <AppIcon glyph="⚰️" tint={colors.accent} size={84} />
-          <Text style={[typography.largeTitle, styles.title]}>Vault</Text>
-          <Text style={[typography.callout, styles.subtitle]}>
-            A decentralized inheritance system.{'\n'}No servers. No middlemen. Just you, your people, and a shared promise.
-          </Text>
-        </View>
+        {!showSaved && (
+          <View style={styles.hero}>
+            <AppIcon glyph="⚰️" tint={colors.accent} size={84} />
+            <Text style={[typography.largeTitle, styles.title]}>Vault</Text>
+            <Text style={[typography.callout, styles.subtitle]}>
+              A decentralized inheritance system.{'\n'}No servers. No middlemen. Just you, your people, and a shared promise.
+            </Text>
+          </View>
+        )}
 
         {showSaved ? (
           <>
+            {state.owner?.name ? (
+              <View style={styles.welcomeBox}>
+                <Text style={[typography.largeTitle, { color: colors.text }]}>
+                  Welcome back, {state.owner.name}!
+                </Text>
+                <Text style={[typography.subhead, { color: colors.textSecondary, marginTop: spacing.xs }]}>
+                  Good to see you're still with us. 🤍
+                </Text>
+              </View>
+            ) : null}
+
             <View style={styles.sectionLabel}>
               <Text style={[typography.footnote, styles.sectionLabelText]}>SAVED VAULTS</Text>
             </View>
@@ -159,6 +172,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: spacing.sm,
     paddingHorizontal: spacing.md
+  },
+  welcomeBox: {
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.lg
   },
   sectionLabel: {
     marginTop: spacing.lg,

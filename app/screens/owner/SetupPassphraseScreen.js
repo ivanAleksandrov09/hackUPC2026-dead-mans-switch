@@ -12,19 +12,21 @@ import { useStore } from '../../services/store'
 
 export default function SetupPassphraseScreen ({ navigation }) {
   const { dispatch } = useStore()
+  const [name, setName] = useState('')
   const [pp, setPp] = useState('')
   const [pp2, setPp2] = useState('')
   const [error, setError] = useState(null)
 
   const next = () => {
+    if (!name.trim()) return setError('Please enter your name.')
     if (pp.length < 8) return setError('Use at least 8 characters.')
     if (pp !== pp2) return setError('Passphrases do not match.')
     setError(null)
-    // Real impl: derive identity via Argon2id (core/identity.js).
     dispatch({
       type: 'setIdentity',
       identity: { publicKeyHex: 'pubkey-placeholder-' + Date.now().toString(36) }
     })
+    dispatch({ type: 'setOwner', patch: { name: name.trim() } })
     navigation.navigate('SetupEstate')
   }
 
@@ -43,6 +45,9 @@ export default function SetupPassphraseScreen ({ navigation }) {
 
         <View style={styles.body}>
           <Card>
+            <Field label="Your name">
+              <TextField value={name} onChangeText={setName} placeholder="What should we call you?" />
+            </Field>
             <Field label="Passphrase">
               <TextField value={pp} onChangeText={setPp} placeholder="At least 8 characters" secure />
             </Field>
