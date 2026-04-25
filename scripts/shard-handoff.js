@@ -9,7 +9,6 @@
 // the original key is recovered.
 
 import b4a from 'b4a'
-import sodium from 'sodium-native'
 import * as core from '../core/index.js'
 import { generateInviteCode } from '../net/transport.js'
 import { openInvite, acceptInvite } from '../net/invite.js'
@@ -34,9 +33,7 @@ if (role === 'owner') {
   }
   console.log('done.')
   process.exit(0)
-}
-
-if (role === 'guardian') {
+} else if (role === 'guardian') {
   const code = process.argv[3]
   if (!code) {
     console.error('usage: shard-handoff.js guardian <invite-code>')
@@ -51,11 +48,7 @@ if (role === 'guardian') {
     await close()
     process.exit(0)
   })
-  return
-}
-
-if (role === '--combine') {
-  // Pass shards as hex args after `--combine`.
+} else if (role === '--combine') {
   const hexes = process.argv.slice(3)
   if (hexes.length < 2) {
     console.error('usage: shard-handoff.js --combine <hex1> <hex2> [<hex3> …]')
@@ -64,7 +57,7 @@ if (role === '--combine') {
   const ek = core.combineKey(hexes.map((h) => b4a.from(h, 'hex')))
   console.log('reconstructed estate key:', ek.toString('hex'))
   process.exit(0)
+} else {
+  console.error('usage: shard-handoff.js owner | guardian <code> | --combine <hex>...')
+  process.exit(1)
 }
-
-console.error('usage: shard-handoff.js owner | guardian <code> | --combine <hex>...')
-process.exit(1)

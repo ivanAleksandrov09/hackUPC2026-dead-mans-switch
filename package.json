@@ -1,14 +1,18 @@
 {
   "name": "dead-mans-switch-protocol",
   "version": "0.1.0",
-  "description": "Decentralized estate & inheritance — protocol libraries (crypto, Shamir, P2P, storage). The mobile UI lives in /app (React Native + Expo).",
+  "description": "Decentralized estate & inheritance — protocol libraries + laptop bridge. Mobile UI lives in /app.",
   "type": "module",
   "scripts": {
     "test": "node --test test/crypto.test.js",
     "spike:owner": "node scripts/heartbeat-owner.js",
     "spike:watch": "node scripts/heartbeat-watcher.js",
-    "spike:handoff": "node scripts/shard-handoff.js",
-    "app": "cd app && npm install && npx expo start"
+    "handoff:owner": "node scripts/shard-handoff.js owner",
+    "handoff:guardian": "node scripts/shard-handoff.js guardian",
+    "handoff:combine": "node scripts/shard-handoff.js --combine",
+    "reconstruct": "node scripts/reconstruct.js",
+    "bridge": "node bridge/server.js",
+    "app": "cd app && npx expo start"
   },
   "dependencies": {
     "b4a": "^1.6.6",
@@ -19,6 +23,7 @@
     "hyperswarm": "^4.8.0",
     "hypercore-crypto": "^3.4.2",
     "shamirs-secret-sharing": "^2.0.0",
-    "sodium-native": "^4.3.0"
+    "sodium-native": "^4.3.0",
+    "ws": "^8.18.0"
   }
 }
