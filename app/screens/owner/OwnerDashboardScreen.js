@@ -46,11 +46,6 @@ export default function OwnerDashboardScreen ({ navigation }) {
         <ScreenHeader
           eyebrow="Vault"
           title={owner.estateLabel || 'My Vault'}
-          right={
-            <Pressable onPress={() => navigation.navigate('EstateBrowser')} hitSlop={12}>
-              <Text style={{ color: colors.accent, fontSize: 18, fontWeight: '600' }}>Edit</Text>
-            </Pressable>
-          }
         />
 
         <View style={styles.ringWrap}>
@@ -73,6 +68,22 @@ export default function OwnerDashboardScreen ({ navigation }) {
                   </Text>
                 </View>
                 <Text style={[typography.footnote, { color: colors.accent, fontWeight: '600' }]}>Tap →</Text>
+              </View>
+            )}
+          </Pressable>
+
+          <SectionHeader title="My Estate" />
+          <Pressable onPress={() => navigation.navigate('EstateBrowser')}>
+            {({ pressed }) => (
+              <View style={[styles.estateButton, pressed && { transform: [{ scale: 0.98 }], opacity: 0.95 }]}>
+                <AppIcon glyph="🏠" tint={colors.iconTint.estate} size={44} />
+                <View style={{ flex: 1, marginLeft: spacing.md }}>
+                  <Text style={[typography.headline, { color: colors.text }]}>View estate</Text>
+                  <Text style={[typography.footnote, { color: colors.textSecondary }]}>
+                    {(owner.items || []).length} item{(owner.items || []).length !== 1 ? 's' : ''} stored
+                  </Text>
+                </View>
+                <Text style={[typography.footnote, { color: colors.accent, fontWeight: '600' }]}>Open →</Text>
               </View>
             )}
           </Pressable>
@@ -129,7 +140,7 @@ export default function OwnerDashboardScreen ({ navigation }) {
               <View style={{ flex: 1 }}>
                 <Text style={[typography.body, { color: colors.text }]}>Fast-forward time</Text>
                 <Text style={[typography.footnote, { color: colors.textSecondary, marginTop: 2 }]}>
-                  Compress your deadline by 60×. Use during the live demo.
+                  Compress your deadline by 60×.
                 </Text>
               </View>
               <Switch value={state.fastForward} onValueChange={toggleFastForward} />
@@ -155,6 +166,19 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg
   },
   body: { paddingHorizontal: spacing.lg },
+  estateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+    marginBottom: spacing.sm
+  },
   kickButton: {
     flexDirection: 'row',
     alignItems: 'center',
