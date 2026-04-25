@@ -109,8 +109,28 @@ export default function OwnerDashboardScreen ({ navigation }) {
         </View>
 
         <View style={styles.body}>
+          {progress < 0.15 && remaining > 0 && (
+            <View style={styles.dangerBanner}>
+              <Text style={[typography.footnote, { color: colors.danger, fontWeight: '700' }]}>
+                ⚠️  Deadline critical — tap now or your Guardians can unlock your vault.
+              </Text>
+            </View>
+          )}
+          {progress >= 0.15 && progress < 0.4 && remaining > 0 && (
+            <View style={styles.warningBanner}>
+              <Text style={[typography.footnote, { color: colors.warning, fontWeight: '600' }]}>
+                Your deadline is approaching. Tap to reset the clock.
+              </Text>
+            </View>
+          )}
+
           <Pressable onPress={kick}>
-            <Animated.View style={[styles.kickButton, { transform: [{ scale: kickScale }] }]}>
+            <Animated.View style={[
+              styles.kickButton,
+              { transform: [{ scale: kickScale }] },
+              progress < 0.15 && remaining > 0 && styles.kickButtonDanger,
+              progress >= 0.15 && progress < 0.4 && remaining > 0 && styles.kickButtonWarning
+            ]}>
               {/* Green flash overlay */}
               <Animated.View
                 pointerEvents="none"
@@ -223,6 +243,20 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg
   },
   body: { paddingHorizontal: spacing.lg },
+  warningBanner: {
+    backgroundColor: colors.warningMuted,
+    borderRadius: radii.md,
+    padding: spacing.sm,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.md
+  },
+  dangerBanner: {
+    backgroundColor: colors.dangerMuted,
+    borderRadius: radii.md,
+    padding: spacing.sm,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.md
+  },
   kickButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -236,6 +270,14 @@ const styles = StyleSheet.create({
     elevation: 2,
     marginBottom: spacing.sm,
     overflow: 'hidden'
+  },
+  kickButtonWarning: {
+    borderWidth: 1.5,
+    borderColor: colors.warning
+  },
+  kickButtonDanger: {
+    borderWidth: 1.5,
+    borderColor: colors.danger
   },
   flashOverlay: {
     backgroundColor: colors.success,
