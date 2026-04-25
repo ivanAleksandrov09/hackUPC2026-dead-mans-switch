@@ -14,6 +14,26 @@ import { colors, radii, spacing, typography } from '../../theme'
 import { useStore } from '../../services/store'
 import { clock, formatRemaining, formatRelative } from '../../services/clock'
 
+// Smoothly interpolates between blue → amber → red as progress goes 1 → 0
+function lerpChannel (a, b, t) { return Math.round(a + (b - a) * t) }
+function progressToRingColor (p) {
+  const safe = Math.max(0, Math.min(1, p))
+  // blue: (0, 122, 255)  amber: (255, 149, 0)  red: (255, 59, 48)
+  let r, g, b
+  if (safe >= 0.4) {
+    const t = 1 - (safe - 0.4) / 0.6   // 0 = blue, 1 = amber
+    r = lerpChannel(0, 255, t)
+    g = lerpChannel(122, 149, t)
+    b = lerpChannel(255, 0, t)
+  } else {
+    const t = 1 - safe / 0.4            // 0 = amber, 1 = red
+    r = 255
+    g = lerpChannel(149, 59, t)
+    b = lerpChannel(0, 48, t)
+  }
+  return `rgb(${r},${g},${b})`
+}
+
 export default function OwnerDashboardScreen ({ navigation }) {
   const { state, dispatch } = useStore()
   const owner = state.owner || {}
@@ -51,9 +71,7 @@ export default function OwnerDashboardScreen ({ navigation }) {
   const remaining = Math.max(0, deadlineMs - elapsed)
   const progress = deadlineMs > 0 ? remaining / deadlineMs : 0
 
-  const ringColor = progress > 0.4 ? colors.accent
-    : progress > 0.15 ? colors.warning
-    : colors.danger
+  const ringColor = progressToRingColor(progress)
 
   const kick = async () => {
     // Haptics: impact + success notification for satisfying double-feedback
