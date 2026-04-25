@@ -28,6 +28,7 @@ function reducer (state, action) {
       )
       return { ...state, owner: { ...state.owner, guardians: next } }
     }
+    case 'clearOwner':          return { ...state, owner: null }
     case 'saveOwner': {
       // Upsert state.owner (which must have an id) into the owners array.
       const o = state.owner

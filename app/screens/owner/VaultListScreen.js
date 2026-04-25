@@ -6,7 +6,7 @@ import { Card } from '../../components/Card'
 import { AppIcon } from '../../components/AppIcon'
 import { Button } from '../../components/Button'
 import { ScreenHeader } from '../../components/Header'
-import { colors, radii, spacing, typography, shadows } from '../../theme'
+import { colors, spacing, typography, shadows } from '../../theme'
 import { useStore } from '../../services/store'
 
 export default function VaultListScreen ({ navigation }) {
@@ -20,9 +20,7 @@ export default function VaultListScreen ({ navigation }) {
 
   const addNew = () => {
     dispatch({ type: 'setMode', mode: 'owner' })
-    dispatch({ type: 'setOwner', patch: {} })
-    // Clear owner so setup starts fresh (keep owners list intact).
-    // We dispatch a bare setOwner to wipe previous active data.
+    dispatch({ type: 'clearOwner' })
     navigation.navigate('SetupWelcome')
   }
 

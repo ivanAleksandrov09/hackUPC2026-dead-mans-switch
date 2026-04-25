@@ -1,18 +1,39 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { View, Text, ScrollView, StyleSheet, Switch, Pressable, Animated } from 'react-native'
+import { View, Text, ScrollView, StyleSheet, Switch, Pressable, Animated, ActionSheetIOS } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 
 import { Card, GroupedList, GroupedRow } from '../../components/Card'
-import { Button } from '../../components/Button'
+
 import { AppIcon } from '../../components/AppIcon'
 import { CountdownRing } from '../../components/CountdownRing'
+import { Feather } from '@expo/vector-icons'
 import { StatusPill } from '../../components/StatusPill'
 import { ScreenHeader, SectionHeader } from '../../components/Header'
 import { colors, radii, spacing, typography } from '../../theme'
 import { useStore } from '../../services/store'
 import { clock, formatRemaining, formatRelative } from '../../services/clock'
 import * as protocol from '../../services/protocol'
+
+// Smoothly interpolates between blue → amber → red as progress goes 1 → 0
+function lerpChannel (a, b, t) { return Math.round(a + (b - a) * t) }
+function progressToRingColor (p) {
+  const safe = Math.max(0, Math.min(1, p))
+  // blue: (0, 122, 255)  amber: (255, 149, 0)  red: (255, 59, 48)
+  let r, g, b
+  if (safe >= 0.4) {
+    const t = 1 - (safe - 0.4) / 0.6   // 0 = blue, 1 = amber
+    r = lerpChannel(0, 255, t)
+    g = lerpChannel(122, 149, t)
+    b = lerpChannel(255, 0, t)
+  } else {
+    const t = 1 - safe / 0.4            // 0 = amber, 1 = red
+    r = 255
+    g = lerpChannel(149, 59, t)
+    b = lerpChannel(0, 48, t)
+  }
+  return `rgb(${r},${g},${b})`
+}
 
 export default function OwnerDashboardScreen ({ navigation }) {
   const { state, dispatch } = useStore()
@@ -58,9 +79,7 @@ export default function OwnerDashboardScreen ({ navigation }) {
   const remaining = Math.max(0, deadlineMs - elapsed)
   const progress = deadlineMs > 0 ? remaining / deadlineMs : 0
 
-  const ringColor = progress > 0.4 ? colors.accent
-    : progress > 0.15 ? colors.warning
-    : colors.danger
+  const ringColor = progressToRingColor(progress)
 
   const kick = async () => {
     // Haptics: impact + success notification for satisfying double-feedback
@@ -91,7 +110,19 @@ export default function OwnerDashboardScreen ({ navigation }) {
 
   const toggleFastForward = (value) => {
     dispatch({ type: 'setFastForward', value })
-    clock.setMultiplier(value ? 60 : 1)
+    clock.setMultiplier(value ? 86400 : 1)
+  }
+
+  const openSettings = () => {
+    ActionSheetIOS.showActionSheetWithOptions(
+      { options: ['Cancel', 'Sign out'], destructiveButtonIndex: 1, cancelButtonIndex: 0 },
+      (i) => {
+        if (i === 1) {
+          dispatch({ type: 'setMode', mode: null })
+          navigation.reset({ index: 0, routes: [{ name: 'ModeSelect' }] })
+        }
+      }
+    )
   }
 
   // Interpolate ring color: flash green then settle back to real color
@@ -106,6 +137,11 @@ export default function OwnerDashboardScreen ({ navigation }) {
         <ScreenHeader
           eyebrow="Vault"
           title={owner.estateLabel || 'My Vault'}
+          right={
+            <Pressable onPress={openSettings} hitSlop={12}>
+              <Feather name="settings" size={22} color={colors.textTertiary} />
+            </Pressable>
+          }
         />
 
         <View style={styles.ringWrap}>
@@ -121,7 +157,7 @@ export default function OwnerDashboardScreen ({ navigation }) {
           {progress < 0.15 && remaining > 0 && (
             <View style={styles.dangerBanner}>
               <Text style={[typography.footnote, { color: colors.danger, fontWeight: '700' }]}>
-                ⚠️  Deadline critical — tap now or your Guardians can unlock your vault.
+                Deadline critical — tap now or your Guardians can unlock your vault.
               </Text>
             </View>
           )}
@@ -206,12 +242,23 @@ export default function OwnerDashboardScreen ({ navigation }) {
 
           <SectionHeader title="Threshold" />
           <Card>
-            <View style={styles.metricRow}>
-              <Text style={[typography.body, { color: colors.text }]}>Required to unlock</Text>
-              <Text style={[typography.headline, { color: colors.accent }]}>
-                {owner.M}-of-{owner.N}
-              </Text>
+            <View style={styles.shieldRow}>
+              {Array.from({ length: owner.N || 0 }).map((_, i) => {
+                const filled = i < (owner.M || 0)
+                return (
+                  <View key={i} style={[styles.shieldWrap, { opacity: filled ? 1 : 0.3 }]}>
+                    <AppIcon
+                      glyph="🛡️"
+                      tint={filled ? colors.iconTint.guardian : colors.textTertiary}
+                      size={40}
+                    />
+                  </View>
+                )
+              })}
             </View>
+            <Text style={[typography.footnote, { color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm }]}>
+              {owner.M}-of-{owner.N} guardians needed to unlock
+            </Text>
             <View style={[styles.metricRow, { marginTop: spacing.md }]}>
               <Text style={[typography.body, { color: colors.text }]}>Inactivity deadline</Text>
               <Text style={[typography.body, { color: colors.textSecondary }]}>
@@ -226,7 +273,7 @@ export default function OwnerDashboardScreen ({ navigation }) {
               <View style={{ flex: 1 }}>
                 <Text style={[typography.body, { color: colors.text }]}>Fast-forward time</Text>
                 <Text style={[typography.footnote, { color: colors.textSecondary, marginTop: 2 }]}>
-                  Compress your deadline by 60×.
+                  30 days → ~30 seconds.
                 </Text>
               </View>
               <Switch value={state.fastForward} onValueChange={toggleFastForward} />
@@ -234,10 +281,6 @@ export default function OwnerDashboardScreen ({ navigation }) {
           </Card>
 
           <View style={{ height: spacing.lg }} />
-          <Button title="Sign out" variant="ghost" onPress={() => {
-            dispatch({ type: 'setMode', mode: null })
-            navigation.reset({ index: 0, routes: [{ name: 'ModeSelect' }] })
-          }} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -305,6 +348,15 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 2,
     marginBottom: spacing.sm
+  },
+  shieldRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.sm
+  },
+  shieldWrap: {
+    alignItems: 'center'
   },
   metricRow: {
     flexDirection: 'row',
