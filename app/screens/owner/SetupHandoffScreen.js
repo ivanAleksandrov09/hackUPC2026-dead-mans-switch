@@ -37,18 +37,45 @@ export default function SetupHandoffScreen ({ navigation }) {
       try {
         const ekHex = await protocol.generateEstateKey()
         const items = state.owner?.items || []
-        // Encrypt each item's text body against the estate key.
-        for (const item of items) {
+        // Encrypt each note body; store ciphertexts so guardians can decrypt
+        // them after reconstruction using the recovered estate key.
+        const encryptedItems = await Promise.all(items.map(async (item) => {
           if (item.kind === 'note' && item.body) {
-            await protocol.encryptEstate(item.body, ekHex)
+            const ctHex = await protocol.encryptEstate(item.body, ekHex)
+            return { id: item.id, kind: item.kind, label: item.label, ctHex }
           }
-        }
+          return { id: item.id, kind: item.kind, label: item.label }
+        }))
         const shardHexes = await protocol.splitKey(ekHex, { M, N })
         if (!cancelled) {
           setShards(shardHexes)
-          // Store a hash stub (never store the raw EK in AsyncStorage).
-          dispatch({ type: 'setOwner', patch: { estateKeyHash: ekHex.slice(0, 16), vaultCreatedAt: Date.now() } })
+          const patch = { estateKeyHash: ekHex.slice(0, 16), vaultCreatedAt: Date.now(), encryptedItems }
+          dispatch({ type: 'setOwner', patch })
           setPreparing(false)
+          // Auto-register every invite code immediately — 10-minute window.
+          // Guardian just needs to enter the code; no owner tap required.
+          guardians.forEach((g) => {
+            protocol.openInvite(
+              invites[g.index],
+              shardHexes[g.index],
+              {
+                shardIndex:      g.index,
+                M,
+                N,
+                deadlineSeconds: state.owner?.deadlineSeconds ?? 30,
+                ownerGroupKey:   patch.estateKeyHash,
+                vaultCreatedAt:  patch.vaultCreatedAt,
+                encryptedItems:  patch.encryptedItems
+              },
+              {
+                onDelivered: () => {
+                  setStatuses((s) => ({ ...s, [g.index]: 'accepted' }))
+                  dispatch({ type: 'updateGuardianRow', index: g.index, patch: { handoffStatus: 'accepted', lastSeenAt: Date.now() } })
+                },
+                onError: () => setStatuses((s) => ({ ...s, [g.index]: 'error' }))
+              }
+            )
+          })
         }
       } catch (err) {
         if (!cancelled) setPrepError(err.message)
@@ -57,27 +84,10 @@ export default function SetupHandoffScreen ({ navigation }) {
     return () => { cancelled = true }
   }, [])
 
-  const allAccepted = guardians.every((g) => statuses[g.index] === 'accepted')
   const acceptedCount = guardians.filter((g) => statuses[g.index] === 'accepted').length
 
-  const copyAndSend = async (index) => {
-    if (!shards) return
-    await Clipboard.setStringAsync(invites[index])
-    setStatuses((s) => ({ ...s, [index]: 'sending' }))
-    try {
-      await protocol.openInvite(invites[index], shards[index], {
-        shardIndex:      index,
-        M,
-        N,
-        deadlineSeconds: state.owner?.deadlineSeconds ?? 30,
-        ownerGroupKey:   state.owner?.estateKeyHash   ?? 'demo',
-        vaultCreatedAt:  state.owner?.vaultCreatedAt  ?? Date.now()
-      })
-      setStatuses((s) => ({ ...s, [index]: 'accepted' }))
-      dispatch({ type: 'updateGuardianRow', index, patch: { handoffStatus: 'accepted', lastSeenAt: Date.now() } })
-    } catch (err) {
-      setStatuses((s) => ({ ...s, [index]: 'error' }))
-    }
+  const copyCode = (index) => {
+    Clipboard.setStringAsync(invites[index]).catch(() => {})
   }
 
   const finish = () => {
@@ -110,7 +120,7 @@ export default function SetupHandoffScreen ({ navigation }) {
         <ScreenHeader
           eyebrow="Step 4 of 4"
           title="Hand off the shards"
-          subtitle="Share each invite code with its Guardian. Tap to copy and send — the bridge waits for them to connect."
+          subtitle="Share each code with its Guardian. Codes are active for 10 minutes — tap to copy."
         />
         <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.lg }}>
           <StepIndicator total={5} current={4} />
@@ -127,9 +137,7 @@ export default function SetupHandoffScreen ({ navigation }) {
           <View style={styles.body}>
             <SectionHeader title={`Invites · ${acceptedCount}/${guardians.length} accepted`} />
             {guardians.map((g) => {
-              const status = statuses[g.index]
-              const isBusy = status === 'sending'
-              const isDone = status === 'accepted'
+              const isDone = statuses[g.index] === 'accepted'
               return (
                 <Card key={g.index} style={styles.inviteCard}>
                   <View style={styles.inviteHeader}>
@@ -145,20 +153,18 @@ export default function SetupHandoffScreen ({ navigation }) {
                       </Text>
                     </View>
                     <StatusPill
-                      tone={isDone ? 'active' : isBusy ? 'warning' : 'pending'}
-                      label={isDone ? 'Accepted' : isBusy ? 'Waiting…' : 'Pending'}
+                      tone={isDone ? 'active' : 'pending'}
+                      label={isDone ? 'Accepted' : 'Waiting'}
                     />
                   </View>
 
-                  <Pressable onPress={() => copyAndSend(g.index)} disabled={isDone || isBusy}>
-                    <View style={[styles.codeBox, (isDone || isBusy) && { opacity: 0.5 }]}>
-                      {isBusy
-                        ? <ActivityIndicator size="small" color={colors.accent} />
-                        : <Text selectable style={[typography.mono, { color: colors.text, textAlign: 'center' }]}>
-                            {invites[g.index]}
-                          </Text>}
+                  <Pressable onPress={() => copyCode(g.index)}>
+                    <View style={[styles.codeBox, isDone && { opacity: 0.5 }]}>
+                      <Text selectable style={[typography.mono, { color: colors.text, textAlign: 'center' }]}>
+                        {invites[g.index]}
+                      </Text>
                       <Text style={[typography.footnote, { color: colors.accent, textAlign: 'center', marginTop: 4 }]}>
-                        {isDone ? 'Shard delivered' : isBusy ? 'Waiting for Guardian…' : 'Tap to copy & connect'}
+                        {isDone ? 'Shard delivered ✓' : 'Tap to copy · active 10 min'}
                       </Text>
                     </View>
                   </Pressable>
@@ -178,9 +184,9 @@ export default function SetupHandoffScreen ({ navigation }) {
         )}
 
         <View style={styles.footer}>
-          <Button title="Finish setup" onPress={finish} disabled={!allAccepted || preparing} />
+          <Button title="Finish setup" onPress={finish} disabled={preparing} />
           <Text style={[typography.caption1, { color: colors.textTertiary, textAlign: 'center', marginTop: spacing.sm }]}>
-            {allAccepted ? 'All shards delivered. Vault is armed.' : 'Waiting for every Guardian to accept.'}
+            {acceptedCount}/{guardians.length} confirmed · {M}-of-{N} threshold
           </Text>
         </View>
       </ScrollView>

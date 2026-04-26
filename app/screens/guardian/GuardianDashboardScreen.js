@@ -24,11 +24,10 @@ export default function GuardianDashboardScreen ({ navigation }) {
     return () => clearInterval(id)
   }, [])
 
-  // Real impl: hand this an actual onUpdate that writes to disk too.
+// Real impl: hand this an actual onUpdate that writes to disk too.
   useEffect(() => {
     if (observingPaused) return
     const sub = protocol.observeHeartbeat({
-      ownerPubKey: guardian.ownerPubKey,
       onUpdate: (lastSeenAt) => {
         dispatch({ type: 'setGuardian', patch: { lastSeenAt, status: 'active' } })
       }
@@ -56,8 +55,10 @@ export default function GuardianDashboardScreen ({ navigation }) {
   }
 
   const toggleFastForward = (value) => {
+    const multiplier = value ? 86400 : 1
     dispatch({ type: 'setFastForward', value })
-    clock.setMultiplier(value ? 86400 : 1)  // 1 virtual day per real second
+    clock.setMultiplier(multiplier)
+    protocol.setFastForward(multiplier)
   }
 
   const tone = overdue ? 'overdue' : guardian.status === 'reconstructing' ? 'reconstructing' : 'active'

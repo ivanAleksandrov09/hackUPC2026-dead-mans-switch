@@ -59,6 +59,7 @@ export default function GuardianAcceptingScreen ({ route, navigation }) {
               deadlineSeconds: meta.deadlineSeconds ?? 30,
               lastSeenAt: meta.vaultCreatedAt ?? clock.now(),
               sealedShard: shardHex,
+              encryptedItems: meta.encryptedItems ?? [],
               driveKey: 'stub',
               status: 'active'
             }

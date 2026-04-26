@@ -12,6 +12,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { StoreProvider, useStore } from './services/store'
 import { colors } from './theme'
 import { BridgeBanner } from './components/BridgeBanner'
+import { clock } from './services/clock'
+import * as protocol from './services/protocol'
 
 import ModeSelectScreen from './screens/ModeSelectScreen'
 import SetupWelcomeScreen from './screens/owner/SetupWelcomeScreen'
@@ -45,7 +47,15 @@ const navTheme = {
 }
 
 function RootNavigator () {
-  const { state } = useStore()
+  const { state, dispatch } = useStore()
+
+  React.useEffect(() => {
+    return protocol.onClockSync((multiplier) => {
+      clock.setMultiplier(multiplier)
+      dispatch({ type: 'setFastForward', value: multiplier > 1 })
+    })
+  }, [])
+
   if (!state.hydrated) return null
 
   // Pick the initial route based on persisted mode + setup progress.

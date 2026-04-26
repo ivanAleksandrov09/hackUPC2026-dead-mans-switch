@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, ScrollView, StyleSheet } from 'react-native'
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { Card, GroupedList, GroupedRow } from '../../components/Card'
@@ -8,24 +8,50 @@ import { Button } from '../../components/Button'
 import { ScreenHeader, SectionHeader } from '../../components/Header'
 import { colors, radii, spacing, typography } from '../../theme'
 import { useStore } from '../../services/store'
-
-// In a real run this is populated from the decrypted Hyperdrive (or inline
-// ciphertext). For the demo we surface the items the Owner originally entered
-// — both apps live in the same store on the demo laptop.
-const DEMO_ITEMS = [
-  { id: 'will',   kind: 'note', label: 'Last Will & Testament',
-    body: 'To my dear Guardians,\n\nThe codes to the safe deposit box live in the second-to-last drawer of the desk in the study. Look behind the false back. Tell my mother I love her. — V.' },
-  { id: 'pwd',    kind: 'note', label: 'Critical passwords',
-    body: 'iCloud: example-keychain-recovery-phrase\nBank: see the printed note in the safety deposit box\n1Password emergency kit: in the green folder' },
-  { id: 'wallet', kind: 'note', label: 'Crypto seed phrase',
-    body: 'witch collapse practice feed shame open despair creek road again ice least' }
-]
+import * as protocol from '../../services/protocol'
 
 export default function EstateUnlockedScreen ({ navigation }) {
   const { state, dispatch } = useStore()
-  const items = state.owner?.items?.length ? state.owner.items : DEMO_ITEMS
-  const [activeId, setActiveId] = React.useState(items[0]?.id)
-  const active = items.find((i) => i.id === activeId)
+  const [items, setItems] = React.useState(null)  // null = decrypting
+  const [decryptError, setDecryptError] = React.useState(null)
+
+  const ekHex = state.guardian?.ekHex
+  React.useEffect(() => {
+    const { encryptedItems } = state.guardian || {}
+    if (!ekHex || !encryptedItems?.length) {
+      if (ekHex !== undefined) setItems([])  // key present but no items
+      return
+    }
+    setItems(null)  // show spinner while decrypting
+    Promise.all(encryptedItems.map(async (item) => {
+      if (item.ctHex) {
+        try {
+          const body = await protocol.decryptEstate(item.ctHex, ekHex)
+          return { ...item, body, ctHex: undefined }
+        } catch {
+          return { ...item, body: '(decryption failed)', ctHex: undefined }
+        }
+      }
+      return item
+    })).then(setItems).catch((err) => setDecryptError(err.message))
+  }, [ekHex])
+
+  const [activeId, setActiveId] = React.useState(null)
+  React.useEffect(() => { if (items?.length) setActiveId(items[0].id) }, [items])
+  const active = items?.find((i) => i.id === activeId)
+
+  if (items === null) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={[typography.subhead, { color: colors.textSecondary, marginTop: spacing.lg }]}>
+            Decrypting estate…
+          </Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -54,8 +80,13 @@ export default function EstateUnlockedScreen ({ navigation }) {
 
         <View style={styles.body}>
           <SectionHeader title="Contents" />
+          {decryptError ? (
+            <Text style={[typography.footnote, { color: colors.danger, padding: spacing.md }]}>
+              Decryption error: {decryptError}
+            </Text>
+          ) : null}
           <GroupedList>
-            {items.map((it, i) => (
+            {(items || []).map((it, i) => (
               <GroupedRow key={it.id} last={i === items.length - 1} onPress={() => setActiveId(it.id)}>
                 <AppIcon
                   icon={it.kind === 'file' ? 'file' : 'file-text'}

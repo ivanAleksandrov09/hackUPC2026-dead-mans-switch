@@ -61,9 +61,10 @@ export default function OwnerDashboardScreen ({ navigation }) {
     return () => pulse.stop()
   }, [pulseAnim])
 
-  // Start heartbeat on the bridge when the dashboard mounts.
   useEffect(() => {
-    heartbeatRef.current = protocol.startHeartbeat({ ownerPubKey: state.identity?.publicKeyHex || '' })
+    heartbeatRef.current = protocol.startHeartbeat()
+    // Kick immediately so all guardians sync their lastSeenAt to this moment.
+    heartbeatRef.current.kick()
     return () => heartbeatRef.current?.stop()
   }, [])
 
@@ -109,8 +110,10 @@ export default function OwnerDashboardScreen ({ navigation }) {
   }
 
   const toggleFastForward = (value) => {
+    const multiplier = value ? 86400 : 1
     dispatch({ type: 'setFastForward', value })
-    clock.setMultiplier(value ? 86400 : 1)
+    clock.setMultiplier(multiplier)
+    protocol.setFastForward(multiplier)
   }
 
   const openSettings = () => {

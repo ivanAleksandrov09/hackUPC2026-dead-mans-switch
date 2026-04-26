@@ -12,7 +12,7 @@ import { WebSocketServer } from 'ws'
 import hyperCrypto from 'hypercore-crypto'
 import b4a from 'b4a'
 import * as core from '../core/index.js'
-import { startHeartbeat, observeHeartbeat } from '../net/heartbeat.js'
+import { startHeartbeat } from '../net/heartbeat.js'
 import { generateInviteCode } from '../net/transport.js'
 
 const PORT = parseInt(process.env.PORT || '3001')
@@ -30,7 +30,7 @@ let liveSessions = 0
 // code -> { type: 'owner', shardHex, onPaired, timer }
 //      |  { type: 'guardian', emitShard, timer }
 const localInvites = new Map()
-const INVITE_TTL_MS = 5 * 60 * 1000
+const INVITE_TTL_MS = 10 * 60 * 1000
 
 // Shard cache: if a guardian's WS drops right when the owner sends, the shard
 // (plus its metadata) would be silently discarded. Store here so a reconnecting
@@ -55,6 +55,10 @@ const WS_STATES = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED']
 // ownerGroupKey -> [{ sessionId, emit, guardianIndex, shardHex }]
 const localReconstructions = new Map()
 
+// All live sessions, for clock-sync broadcast.
+const activeSessions = new Map()  // session.id -> { emit }
+let globalMultiplier = 1
+
 function makeSession () {
   return {
     id: ++connCount,
@@ -70,6 +74,8 @@ wss.on('connection', (ws) => {
   const session = makeSession()
   liveSessions++
   console.log(`${tag(session)} phone connected (${liveSessions} session(s) live, pending invites: ${snapshotInvites()})`)
+  activeSessions.set(session.id, { emit: (...args) => emit(...args) })
+  if (globalMultiplier !== 1) setImmediate(() => emit('clockSync', { multiplier: globalMultiplier }))
 
   const send = (msg) => {
     if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg))
@@ -87,7 +93,15 @@ wss.on('connection', (ws) => {
     if (method !== 'kick') console.log(`${tag(session)} → ${method}`)
 
     try {
-      if (method === 'generateEstateKey') {
+      if (method === 'setFastForward') {
+        globalMultiplier = params.multiplier
+        for (const [sid, s] of activeSessions) {
+          if (sid !== session.id) s.emit('clockSync', { multiplier: params.multiplier })
+        }
+        console.log(`${tag(session)} [clockSync] broadcast multiplier=${params.multiplier} to ${activeSessions.size - 1} other session(s)`)
+        reply(id, { ok: true })
+
+      } else if (method === 'generateEstateKey') {
         const ek = core.generateEstateKey()
         reply(id, { ekHex: ek.toString('hex') })
 
@@ -123,16 +137,17 @@ wss.on('connection', (ws) => {
         reply(id, { ownerPubKey: ownerKeyPair.publicKey.toString('hex') })
 
       } else if (method === 'kick') {
-        session.heartbeatHandle?.kick()
+        // Use the virtual clock time sent by the owner's phone so guardian
+        // lastSeenAt stays in sync under fast-forward (bridge runs real time).
+        const lastSeenAt = params.lastSeenAt || Date.now()
+        for (const [sid, s] of activeSessions) {
+          if (sid !== session.id) s.emit('heartbeat', { lastSeenAt })
+        }
         reply(id, { ok: true })
 
       } else if (method === 'observeHeartbeat') {
-        if (session.observeHandle) await session.observeHandle.stop()
-        const ownerPubKey = b4a.from(params.ownerPubKey, 'hex')
-        session.observeHandle = observeHeartbeat({
-          ownerPubKey,
-          onUpdate: (lastSeenAt) => emit('heartbeat', { lastSeenAt })
-        })
+        // Heartbeats now arrive via the kick broadcast in activeSessions,
+        // not via the P2P swarm. This is a no-op — just acknowledge.
         reply(id, { ok: true })
 
       } else if (method === 'openInvite') {
@@ -144,32 +159,39 @@ wss.on('connection', (ws) => {
           M:               params.M,
           N:               params.N,
           deadlineSeconds: params.deadlineSeconds,
-          ownerGroupKey:   params.ownerGroupKey
+          ownerGroupKey:   params.ownerGroupKey,
+          vaultCreatedAt:  params.vaultCreatedAt,
+          encryptedItems:  params.encryptedItems ?? []
         }
         console.log(`${tag(session)} [openInvite] OWNER — code "${code}", shardIndex=${shardMeta.shardIndex}, M=${shardMeta.M}, N=${shardMeta.N}, deadline=${shardMeta.deadlineSeconds}s, pending: ${snapshotInvites()}`)
+        // Reply immediately so the owner phone never times out waiting.
+        // Delivery is confirmed via a shardDelivered event sent when the guardian pairs.
+        reply(id, { ok: true, waiting: true })
+
+        const notifyDelivered = () => {
+          const wsState = WS_STATES[ws.readyState] ?? ws.readyState
+          console.log(`${tag(session)} [openInvite] shardDelivered → owner (WS ${wsState}, shardIndex=${shardMeta.shardIndex})`)
+          if (ws.readyState === ws.OPEN) emit('shardDelivered', { shardIndex: shardMeta.shardIndex })
+        }
+
         const pending = localInvites.get(code)
         if (pending && pending.type === 'guardian') {
-          console.log(`${tag(session)} [openInvite] guardian already waiting — delivering shard immediately`)
+          console.log(`${tag(session)} [openInvite] guardian already waiting — delivering immediately`)
           clearTimeout(pending.timer)
           localInvites.delete(code)
           cacheDeliveredShard(code, shardMeta)
           pending.emitShard(shardMeta)
-          reply(id, { ok: true })
+          notifyDelivered()
         } else {
-          console.log(`${tag(session)} [openInvite] no guardian yet — registering owner, waiting`)
-          const slot = { type: 'owner', ...shardMeta }
+          console.log(`${tag(session)} [openInvite] no guardian yet — registering owner slot`)
+          const slot = { type: 'owner', ...shardMeta, notifyDelivered }
           slot.timer = setTimeout(() => {
             if (localInvites.get(code) === slot) {
               localInvites.delete(code)
               console.log(`${tag(session)} [openInvite] timeout — no guardian connected`)
-              error(id, 'invite timeout: no guardian connected within 5 minutes')
+              if (ws.readyState === ws.OPEN) emit('inviteError', { message: 'no guardian connected within 5 minutes', shardIndex: shardMeta.shardIndex })
             }
           }, INVITE_TTL_MS)
-          slot.onPaired = () => {
-            clearTimeout(slot.timer)
-            console.log(`${tag(session)} [openInvite] paired — replying ok to owner`)
-            reply(id, { ok: true })
-          }
           localInvites.set(code, slot)
         }
 
@@ -197,10 +219,10 @@ wss.on('connection', (ws) => {
             console.log(`${tag(session)} [acceptInvite] owner already waiting — pairing immediately`)
             clearTimeout(pending.timer)
             localInvites.delete(code)
-            const { onPaired, timer: _t, type: _type, ...meta } = pending
+            const { notifyDelivered, timer: _t, type: _type, ...meta } = pending
             cacheDeliveredShard(code, meta)
             emitShard(meta)
-            pending.onPaired()
+            notifyDelivered?.()
           } else {
             console.log(`${tag(session)} [acceptInvite] no owner yet — registering guardian, waiting`)
             const slot = { type: 'guardian', emitShard }
@@ -267,6 +289,7 @@ wss.on('connection', (ws) => {
 
   ws.on('close', async () => {
     liveSessions--
+    activeSessions.delete(session.id)
     console.log(`${tag(session)} phone disconnected (${liveSessions} session(s) live)`)
     await session.heartbeatHandle?.stop().catch(() => {})
     await session.observeHandle?.stop().catch(() => {})

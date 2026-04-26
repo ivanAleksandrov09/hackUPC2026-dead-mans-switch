@@ -3,7 +3,7 @@
 // Falls back to mock mode if the bridge is unreachable.
 
 import { BRIDGE_URL } from './config.js'
-import { ping as solanaPing, warmUp as solanaWarmUp } from './solana.js'
+import { clock } from './clock.js'
 
 // -- Connection ---------------------------------------------------------
 
@@ -126,29 +126,52 @@ export function generateInviteCode () {
   return Array.from({ length: 6 }, () => WORDS[Math.floor(Math.random() * WORDS.length)]).join('-')
 }
 
-export function startHeartbeat ({ ownerPubKey }) {
-  // Kick off airdrop + switch-account init in the background so the first
-  // real ping is fast.
-  solanaWarmUp()
+export function startHeartbeat () {
   return {
     async kick () {
-      const sig = await solanaPing()
-      return sig
+      // Send virtual clock time so guardians stay in sync under fast-forward.
+      await call('kick', { lastSeenAt: clock.now() }).catch(() => {})
     },
     async stop () {},
   }
 }
 
-export function observeHeartbeat ({ ownerPubKey, onUpdate }) {
-  call('observeHeartbeat', { ownerPubKey }).catch(() => {})
+export function observeHeartbeat ({ onUpdate }) {
+  // Heartbeats arrive via the bridge's kick broadcast — no P2P swarm needed.
   const off = on('heartbeat', (msg) => onUpdate?.(msg.lastSeenAt))
   return { stop () { off() } }
 }
 
-export async function openInvite (code, shardHex, meta = {}) {
-  console.log(`[protocol] openInvite: waiting for guardian on code ${code.slice(0, 12)}…`)
-  await call('openInvite', { code, shardHex, ...meta })
-  console.log(`[protocol] openInvite: shard delivered, owner UI should update`)
+export function setFastForward (multiplier) {
+  call('setFastForward', { multiplier }).catch(() => {})
+}
+
+export function onClockSync (cb) {
+  return on('clockSync', (msg) => cb(msg.multiplier))
+}
+
+export function openInvite (code, shardHex, meta = {}, { onDelivered, onError } = {}) {
+  console.log(`[protocol] openInvite: code ${code.slice(0, 12)}… shardIndex=${meta.shardIndex}`)
+  call('openInvite', { code, shardHex, ...meta }).catch((err) => {
+    console.log(`[protocol] openInvite call error: ${err.message}`)
+  })
+  const offDelivered = on('shardDelivered', (msg) => {
+    if (msg.shardIndex === meta.shardIndex) {
+      console.log(`[protocol] shardDelivered: shardIndex=${msg.shardIndex}`)
+      onDelivered?.()
+      offDelivered()
+      offError()
+    }
+  })
+  const offError = on('inviteError', (msg) => {
+    if (msg.shardIndex === meta.shardIndex) {
+      console.log(`[protocol] inviteError for shardIndex=${msg.shardIndex}: ${msg.message}`)
+      onError?.(msg.message)
+      offDelivered()
+      offError()
+    }
+  })
+  return { stop () { offDelivered(); offError() } }
 }
 
 export function acceptInvite (code, { onShard, onError } = {}) {
